@@ -47,6 +47,12 @@ namespace ccb { namespace filesystem
         while ((entry = readdir(dp)))
         {
             std::string fileName(entry->d_name);
+
+            if ((fileName == ".") || (fileName == ".."))
+            {
+                continue;
+            }
+
             std::wstring wideFileName(fileName.begin(), fileName.end());
 
             struct stat st;

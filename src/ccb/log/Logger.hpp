@@ -24,9 +24,9 @@
 
 #include <sstream>
 
-#include <cloudcastle/infrastructure/log/LogSink.hpp>
+#include <ccb/log/LogSink.hpp>
 
-namespace cloudcastle { namespace infrastructure { namespace log
+namespace ccb { namespace log
 {
     class Logger
     {
@@ -97,4 +97,4 @@ namespace cloudcastle { namespace infrastructure { namespace log
         {
         }
     };
-} } }
+} }

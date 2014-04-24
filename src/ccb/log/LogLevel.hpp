@@ -24,7 +24,7 @@
 
 #include <ostream>
 
-namespace cloudcastle { namespace infrastructure { namespace log
+namespace ccb { namespace log
 {
     enum class LogLevel
     {
@@ -69,4 +69,4 @@ namespace cloudcastle { namespace infrastructure { namespace log
 
         return stream;
     }
-} } }
+} }

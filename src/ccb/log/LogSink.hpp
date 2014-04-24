@@ -30,11 +30,11 @@
 #include <set>
 #include <thread>
 
-#include <cloudcastle/infrastructure/Time.hpp>
-#include <cloudcastle/infrastructure/log/ILogTarget.hpp>
-#include <cloudcastle/infrastructure/log/LogLevel.hpp>
+#include <ccb/Time.hpp>
+#include <ccb/log/ILogTarget.hpp>
+#include <ccb/log/LogLevel.hpp>
 
-namespace cloudcastle { namespace infrastructure { namespace log
+namespace ccb { namespace log
 {
     class LogSink
     {
@@ -168,4 +168,4 @@ namespace cloudcastle { namespace infrastructure { namespace log
             return result;
         }
     };
-} } }
+} }

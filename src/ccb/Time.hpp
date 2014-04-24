@@ -86,6 +86,11 @@ namespace ccb
             return result;
         }
 
+        const std::chrono::system_clock::time_point& GetTimePoint() const
+        {
+            return this->timePoint;
+        }
+
         friend inline bool operator == (const Time& t1, const Time& t2)
         {
             return t1.timePoint == t2.timePoint;
@@ -106,6 +111,11 @@ namespace ccb
             return t1.timePoint >= t2.timePoint;
         }
 
+        friend bool operator > (const Time& t1, const Time& t2)
+        {
+            return t1.timePoint > t2.timePoint;
+        }
+
         friend inline std::chrono::system_clock::duration operator - (const Time& t1, const Time& t2)
         {
             return t1.timePoint - t2.timePoint;
@@ -114,6 +124,24 @@ namespace ccb
         friend Time operator + (const Time& t1, const std::chrono::system_clock::duration& d)
         {
             return Time(t1.timePoint + d);
+        }
+
+        friend inline std::ostream& operator << (std::ostream& stream, const Time& t)
+        {
+            auto time = std::chrono::system_clock::to_time_t(t.timePoint);
+
+            auto fields = std::localtime(&time);
+
+            stream
+                << std::setfill('0')
+                << std::setw(4) << (1900 + fields->tm_year) << "."
+                << std::setw(2) << fields->tm_mon << "."
+                << std::setw(2) << fields->tm_mday << " "
+                << std::setw(2) << fields->tm_hour << ":"
+                << std::setw(2) << fields->tm_min << ":"
+                << std::setw(2) << fields->tm_sec;
+
+            return stream;
         }
 
         friend inline std::wostream& operator << (std::wostream& stream, const Time& t)

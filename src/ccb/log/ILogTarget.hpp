@@ -28,7 +28,7 @@
 #include <ccb/Time.hpp>
 #include <ccb/log/LogLevel.hpp>
 
-namespace cloudcastle { namespace infrastructure { namespace log
+namespace ccb { namespace log
 {
     class ILogTarget
     {
@@ -40,4 +40,4 @@ namespace cloudcastle { namespace infrastructure { namespace log
             const std::wstring& source,
             const std::wstring& message) = 0;
     };
-} } }
+} }
