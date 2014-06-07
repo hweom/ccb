@@ -91,6 +91,19 @@ namespace ccb
             return this->timePoint;
         }
 
+        Time& operator += (const std::chrono::system_clock::duration& d)
+        {
+            this->timePoint += d;
+            return *this;
+        }
+
+        const Time Floor(const std::chrono::system_clock::duration& mod) const
+        {
+            std::chrono::system_clock::duration sysMod = mod;
+            auto intervalCount = this->timePoint.time_since_epoch().count() / sysMod.count();
+            return Time(std::chrono::system_clock::time_point() + sysMod * intervalCount);
+        }
+
         friend inline bool operator == (const Time& t1, const Time& t2)
         {
             return t1.timePoint == t2.timePoint;
@@ -135,8 +148,8 @@ namespace ccb
             stream
                 << std::setfill('0')
                 << std::setw(4) << (1900 + fields->tm_year) << "."
-                << std::setw(2) << fields->tm_mon << "."
-                << std::setw(2) << fields->tm_mday << " "
+                << std::setw(2) << (fields->tm_mon + 1) << "."
+                << std::setw(2) << fields->tm_mday << "-"
                 << std::setw(2) << fields->tm_hour << ":"
                 << std::setw(2) << fields->tm_min << ":"
                 << std::setw(2) << fields->tm_sec;
@@ -154,10 +167,66 @@ namespace ccb
                 << std::setfill(L'0')
                 << std::setw(4) << (1900 + fields->tm_year) << L"."
                 << std::setw(2) << fields->tm_mon << L"."
-                << std::setw(2) << fields->tm_mday << L" "
+                << std::setw(2) << fields->tm_mday << L"-"
                 << std::setw(2) << fields->tm_hour << L":"
                 << std::setw(2) << fields->tm_min << L":"
                 << std::setw(2) << fields->tm_sec;
+
+            return stream;
+        }
+
+
+        friend inline std::istream& operator >> (std::istream& stream, Time& t)
+        {
+            unsigned year, month, day, hour = 0, minute = 0, second = 0, millisecond = 0;
+
+            stream >> year;
+            if (stream.get() != '.')
+            {
+                throw std::invalid_argument("Not a time.");
+            }
+
+            stream >> month;
+            if (stream.get() != '.')
+            {
+                throw std::invalid_argument("Not a time.");
+            }
+
+            stream >> day;
+            if ((month < 1) || (month > 12) || (day < 1) || (day > 31))
+            {
+                throw std::invalid_argument("Not a time.");
+            }
+
+            if (stream.peek() == ' ')
+            {
+                stream.get();
+
+                if (isdigit(stream.peek()))
+                {
+                    stream >> hour;
+                    if (stream.get() != ':')
+                    {
+                        throw std::invalid_argument("Not a time.");
+                    }
+
+                    stream >> minute;
+                    if (stream.get() != ':')
+                    {
+                        throw std::invalid_argument("Not a time.");
+                    }
+
+                    stream >> second;
+
+                    if (stream.peek() == '.')
+                    {
+                        stream.get();
+                        stream >> millisecond;
+                    }
+                }
+            }
+
+            t = Time(year, month, day, hour, minute, second, millisecond);
 
             return stream;
         }

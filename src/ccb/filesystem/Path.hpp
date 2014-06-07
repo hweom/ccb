@@ -46,6 +46,12 @@ namespace ccb { namespace filesystem
         {
         }
 
+        Path(const char *name)
+        {
+            std::string path(name);
+            this->Decompose(std::wstring(path.begin(), path.end()));
+        }
+
         Path(const std::string& path)
         {
             this->Decompose(std::wstring(path.begin(), path.end()));

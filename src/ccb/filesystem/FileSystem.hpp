@@ -49,8 +49,8 @@ namespace ccb { namespace filesystem
 
         Path UniquePath(const std::wstring& model = L"%%%%-%%%%") const;
 
-        std::vector<std::wstring> ReadDirectory(const Path &path, bool includeFiles = true, bool includeDirs = true);
+        std::vector<Path> ReadDirectory(const Path &path, bool includeFiles = true, bool includeDirs = true);
 
-        std::vector<std::wstring> ReadDirectoryFilter(const Path& path, const std::wregex& regex, bool includeFiles = true, bool includeDirs = true);
+        std::vector<Path> ReadDirectoryFilter(const Path& path, const std::wregex& regex, bool includeFiles = true, bool includeDirs = true);
     };
 } }

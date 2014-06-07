@@ -89,6 +89,8 @@ namespace ccb { namespace csv
 
     private:
 
+        static const char DELIMITER = ';';
+
         std::vector<Row> rows;
 
     public:
@@ -99,6 +101,38 @@ namespace ccb { namespace csv
 
         CsvFile(const filesystem::Path& path)
         {
+            char buffer[1024];
+            std::ifstream stream(path.ToShortString());
+
+            while (stream.good())
+            {
+                stream.getline(buffer, 1024);
+
+                if (!stream.good())
+                {
+                    break;
+                }
+
+                this->rows.push_back(Row());
+                std::string field;
+                for (char* c = buffer; *c != 0; c++)
+                {
+                    if (*c == DELIMITER)
+                    {
+                        this->rows.back().push_back(field);
+                        field.clear();
+                    }
+                    else
+                    {
+                        field += *c;
+                    }
+                }
+
+                if (field.length() > 0)
+                {
+                    this->rows.back().push_back(field);
+                }
+            }
         }
 
     public:

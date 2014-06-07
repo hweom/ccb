@@ -31,9 +31,9 @@
 namespace ccb { namespace filesystem
 {
     template<typename Pred>
-    std::vector<std::wstring> QueryDirectory(const Path &path, const Pred& predicate)
+    std::vector<Path> QueryDirectory(const Path &path, const Pred& predicate)
     {
-        std::vector<std::wstring> result;
+        std::vector<Path> result;
 
         auto pathStr = path.ToShortString();
 
@@ -60,7 +60,7 @@ namespace ccb { namespace filesystem
             {
                 if (predicate(wideFileName, st))
                 {
-                    result.push_back(wideFileName);
+                    result.push_back(Path(wideFileName));
                 }
             }
         }
@@ -217,7 +217,7 @@ namespace ccb { namespace filesystem
         return realPath;
     }
 
-    std::vector<std::wstring> FileSystem::ReadDirectory(const Path &path, bool includeFiles, bool includeDirs)
+    std::vector<Path> FileSystem::ReadDirectory(const Path &path, bool includeFiles, bool includeDirs)
     {
         return QueryDirectory(path, [includeFiles, includeDirs](const std::wstring& fileName, const struct stat& st)
         {
@@ -226,7 +226,7 @@ namespace ccb { namespace filesystem
         });
     }
 
-    std::vector<std::wstring> FileSystem::ReadDirectoryFilter(const Path& path, const std::wregex& regex, bool includeFiles, bool includeDirs)
+    std::vector<Path> FileSystem::ReadDirectoryFilter(const Path& path, const std::wregex& regex, bool includeFiles, bool includeDirs)
     {
         return QueryDirectory(path, [includeFiles, includeDirs, &regex](const std::wstring& fileName, const struct stat& st)
         {
