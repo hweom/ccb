@@ -124,7 +124,7 @@ namespace ccb { namespace filesystem
 
         if (stat(path.ToShortString().c_str(), &st) == 0)
         {
-            if (st.st_mode & S_IFREG != 0)
+            if ((st.st_mode & S_IFREG) != 0)
             {
                 return true;
             }
@@ -150,7 +150,7 @@ namespace ccb { namespace filesystem
 
     void FileSystem::CreateDirectories(const Path& path) const
     {
-        if (this->DirectoryExists(path))
+        if (path.IsEmpty() || this->DirectoryExists(path))
         {
             return;
         }

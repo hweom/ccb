@@ -63,3 +63,4 @@ namespace ccb { namespace binary
         }
     };
 } }
+

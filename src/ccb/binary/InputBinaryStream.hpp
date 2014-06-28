@@ -98,7 +98,7 @@ namespace ccb { namespace binary
             }
             else
             {
-                throw std::invalid_argument("Not a hex symbol: " + c);
+                throw std::invalid_argument(std::string("Not a hex symbol: ") + c);
             }
         }
     };

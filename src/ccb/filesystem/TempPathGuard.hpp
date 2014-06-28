@@ -22,23 +22,46 @@
 
 #pragma once
 
-#include <chrono>
-#include <string>
+#include <ccb/filesystem/FileSystem.hpp>
 
-#include <ccb/Time.hpp>
-#include <ccb/log/LogLevel.hpp>
-
-namespace ccb { namespace log
+namespace ccb { namespace filesystem
 {
-    class ILogTarget
+    class TempPathGuard
     {
+    private:
+
+        FileSystem fileSystem;
+
+        Path path;
+
     public:
 
-        virtual void LogMessage(
-            const Time& time,
-            LogLevel level,
-            const std::wstring& source,
-            const std::wstring& message) = 0;
+        TempPathGuard()
+        {
+            this->path = this->fileSystem.GetTempPath() / this->fileSystem.UniquePath();
+        }
+
+        TempPathGuard(const TempPathGuard& other) = delete;
+
+        TempPathGuard(TempPathGuard&& other)
+            : path(other.path)
+        {
+            other.path = Path();
+        }
+
+        ~TempPathGuard()
+        {
+            if (!this->path.IsEmpty())
+            {
+                this->fileSystem.RemoveRecursive(this->path);
+            }
+        }
+
+    public:
+
+        const Path& GetPath() const
+        {
+            return this->path;
+        }
     };
 } }
-
