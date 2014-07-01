@@ -60,6 +60,8 @@ namespace ccb { namespace binary
                 stream.bytes.push_back(*ptr);
                 ptr++;
             }
+
+            return stream;
         }
     };
 } }
