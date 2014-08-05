@@ -22,51 +22,20 @@
 
 #pragma once
 
-#include <ostream>
-
 namespace ccb { namespace log
 {
-    enum class LogLevel
+    template<typename S, typename T>
+    class is_streamable
     {
-        Trace = 0,
+        template<typename SS, typename TT>
+        static auto test(int)
+        -> decltype( std::declval<SS&>() << std::declval<TT>(), std::true_type() );
 
-        Log = 1,
+        template<typename, typename>
+        static auto test(...) -> std::false_type;
 
-        Info = 2,
+    public:
 
-        Warning = 3,
-
-        Error = 4
+        static const bool value = decltype(test<S,T>(0))::value;
     };
-
-    inline std::wostream& operator << (std::wostream& stream, LogLevel level)
-    {
-        switch (level)
-        {
-        case LogLevel::Trace:
-            stream << L"Trace";
-            break;
-
-        case LogLevel::Log:
-            stream << L"Log";
-            break;
-
-        case LogLevel::Info:
-            stream << L"Info";
-            break;
-
-        case LogLevel::Warning:
-            stream << L"Warning";
-            break;
-
-        case LogLevel::Error:
-            stream << L"Error";
-            break;
-
-        default:
-            stream << L"Unknown";
-        };
-
-        return stream;
-    }
 } }

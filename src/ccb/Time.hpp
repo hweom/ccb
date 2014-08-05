@@ -24,6 +24,7 @@
 
 #include <chrono>
 #include <iomanip>
+#include <istream>
 #include <ostream>
 #include <stdexcept>
 

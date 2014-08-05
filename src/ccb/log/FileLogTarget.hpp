@@ -38,6 +38,11 @@ namespace ccb { namespace log
 
     public:
 
+        FileLogTarget(const std::string& fileName)
+            : fileName(fileName)
+        {
+        }
+
         FileLogTarget(const std::wstring& fileName)
             : fileName(fileName.begin(), fileName.end())
         {
@@ -59,4 +64,4 @@ namespace ccb { namespace log
                 << message << std::endl;
         }
     };
-} } }
+} }

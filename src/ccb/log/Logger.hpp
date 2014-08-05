@@ -24,13 +24,30 @@
 
 #include <sstream>
 
+#include <ccb/log/IsStreamable.hpp>
 #include <ccb/log/LogSink.hpp>
 
 namespace ccb { namespace log
 {
     class Logger
     {
+    public:
+
+        template<typename T>
+        struct PreferWide
+        {
+            static const bool value = is_streamable<std::wostream, T>::value;
+        };
+
+        template<typename T>
+        struct PreferShort
+        {
+            static const bool value = !is_streamable<std::wostream, T>::value && is_streamable<std::ostream, T>::value;
+        };
+
     private:
+
+        static const wchar_t PATH_SEPARATOR = '.';
 
         LogSink* sink;
 
@@ -38,9 +55,21 @@ namespace ccb { namespace log
 
     public:
 
-        Logger(const std::wstring& name)
+        Logger(const std::string& name, Logger* parentLogger = nullptr)
             : sink(&LogSink::GetSink())
-            , name(name)
+            , name(
+                ((parentLogger == nullptr) ? std::wstring() : parentLogger->name)
+                    + PATH_SEPARATOR
+                    + std::wstring(name.begin(), name.end()))
+        {
+        }
+
+        Logger(const std::wstring& name, Logger* parentLogger = nullptr)
+            : sink(&LogSink::GetSink())
+            , name(
+                ((parentLogger == nullptr) ? std::wstring() : parentLogger->name)
+                    + PATH_SEPARATOR
+                    + name)
         {
         }
 
@@ -88,7 +117,7 @@ namespace ccb { namespace log
         template<typename Arg0, typename... Params>
         void Write(std::wostream& stream, LogLevel level, Arg0 arg0, Params... params)
         {
-            stream << arg0;
+            this->WriteValue(stream, arg0);
 
             this->Write(stream, level, params...);
         }
@@ -96,5 +125,42 @@ namespace ccb { namespace log
         void Write(std::wostream& stream, LogLevel level)
         {
         }
+
+        template<typename T>
+        void WriteValue(
+            std::wostream& stream,
+            T value,
+            typename std::enable_if<PreferWide<T>::value, T>::type* dummyPtr = nullptr)
+        {
+            stream << value;
+        }
+
+        template<typename T>
+        void WriteValue(
+            std::wostream& stream,
+            T value,
+            typename std::enable_if<PreferShort<T>::value, T>::type* dummyPtr = nullptr)
+        {
+            std::ostringstream substream;
+            substream << value;
+            auto str = substream.str();
+            stream << std::wstring(str.begin(), str.end());
+        }
+/*
+        template<typename T>
+        void WriteValue(
+            std::wostream& stream,
+            T value,
+            std::enable_if<
+                !is_streamable<std::ostream, T>::value
+                && !is_streamable<std::wostream, T>::value,
+            T>* dummyPtr = nullptr)
+        {
+            if (sizeof(T) >= 0)
+            {
+                static_assert(false, "No stream operator defined!");
+            }
+        }
+        */
     };
 } }
