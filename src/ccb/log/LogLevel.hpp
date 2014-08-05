@@ -30,13 +30,13 @@ namespace ccb { namespace log
     {
         Trace = 0,
 
-        Log = 1,
+        Info = 1,
 
-        Info = 2,
+        Warning = 2,
 
-        Warning = 3,
+        Error = 3,
 
-        Error = 4
+        Critical = 4
     };
 
     inline std::wostream& operator << (std::wostream& stream, LogLevel level)
@@ -44,27 +44,23 @@ namespace ccb { namespace log
         switch (level)
         {
         case LogLevel::Trace:
-            stream << L"Trace";
-            break;
-
-        case LogLevel::Log:
-            stream << L"Log";
-            break;
+            return stream << L"Trace";
 
         case LogLevel::Info:
-            stream << L"Info";
+            return stream << L"Info";
             break;
 
         case LogLevel::Warning:
-            stream << L"Warning";
-            break;
+            return stream << L"Warning";
 
         case LogLevel::Error:
-            stream << L"Error";
-            break;
+            return stream << L"Error";
+
+        case LogLevel::Critical:
+            return stream << L"Critical";
 
         default:
-            stream << L"Unknown";
+            return stream << L"Unknown";
         };
 
         return stream;

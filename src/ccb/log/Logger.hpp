@@ -90,12 +90,6 @@ namespace ccb { namespace log
         }
 
         template<typename... Params>
-        void Log(Params... params)
-        {
-            this->Write(LogLevel::Log, params...);
-        }
-
-        template<typename... Params>
         void Info(Params... params)
         {
             this->Write(LogLevel::Info, params...);
@@ -112,6 +106,13 @@ namespace ccb { namespace log
         {
             this->Write(LogLevel::Error, params...);
         }
+
+        template<typename... Params>
+        void Critical(Params... params)
+        {
+            this->Write(LogLevel::Critical, params...);
+        }
+
     private:
 
         template<typename Arg0, typename... Params>

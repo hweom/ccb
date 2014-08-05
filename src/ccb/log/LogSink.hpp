@@ -25,6 +25,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <iostream>
 #include <list>
 #include <mutex>
 #include <set>
@@ -109,6 +110,11 @@ namespace ccb { namespace log
 
         void WriteMessage(LogLevel level, const std::wstring& source, const std::wstring& message)
         {
+            if ((level == LogLevel::Error) || (level == LogLevel::Critical))
+            {
+                std::wcerr << source << " L[" << level << "]: " << message << std::endl;
+            }
+
             std::lock_guard<std::mutex> lock(this->dispatchMutex);
 
             this->entries.emplace_back(level, source, message);
