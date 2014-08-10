@@ -140,6 +140,11 @@ namespace ccb
             return Time(t1.timePoint + d);
         }
 
+        friend Time operator - (const Time& t1, const std::chrono::system_clock::duration& d)
+        {
+            return Time(t1.timePoint - d);
+        }
+
         friend inline std::ostream& operator << (std::ostream& stream, const Time& t)
         {
             auto time = std::chrono::system_clock::to_time_t(t.timePoint);
