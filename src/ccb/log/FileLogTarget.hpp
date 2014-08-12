@@ -27,6 +27,7 @@
 #include <string>
 
 #include <ccb/log/ILogTarget.hpp>
+#include <ccb/filesystem/FileSystem.hpp>
 
 namespace ccb { namespace log
 {
@@ -41,11 +42,13 @@ namespace ccb { namespace log
         FileLogTarget(const std::string& fileName)
             : fileName(fileName)
         {
+            this->PreparePath();
         }
 
         FileLogTarget(const std::wstring& fileName)
             : fileName(fileName.begin(), fileName.end())
         {
+            this->PreparePath();
         }
 
     public:
@@ -62,6 +65,15 @@ namespace ccb { namespace log
                 << level << L" : "
                 << source << L" : "
                 << message << std::endl;
+        }
+
+    private:
+
+        void PreparePath()
+        {
+            filesystem::FileSystem fileSystem;
+
+            fileSystem.CreateDirectories(filesystem::Path(this->fileName).GetContainingPath());
         }
     };
 } }

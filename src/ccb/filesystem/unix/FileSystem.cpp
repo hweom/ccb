@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include <cstring>
+#include <system_error>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -158,7 +159,13 @@ namespace ccb { namespace filesystem
         auto parentPath = path.GetContainingPath();
         this->CreateDirectories(parentPath);
 
-        mkdir(path.ToShortString().c_str(), 0777);
+        if (mkdir(path.ToShortString().c_str(), 0777) != 0)
+        {
+            throw std::system_error(
+                errno,
+                std::system_category(),
+                "error while trying to create path " + path.ToShortString());
+        }
     }
 
     void FileSystem::Rename(const Path& from, const Path& to) const
