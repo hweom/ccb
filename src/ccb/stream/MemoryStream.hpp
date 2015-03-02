@@ -84,7 +84,7 @@ namespace ccb { namespace stream
                     this->readPtr = this->readEnd + off;
                 }
 
-                this->readPtr = std::max(this->readEnd, std::min(this->readStart, this->readPtr));
+                this->readPtr = std::min(this->readEnd, std::max(this->readStart, this->readPtr));
             }
 
             if (which & std::ios_base::out)
@@ -107,30 +107,17 @@ namespace ccb { namespace stream
                     this->writePtr = this->writeEnd + off;
                 }
 
-                this->writePtr = std::max(this->writeEnd, std::min(this->writeStart, this->writePtr));
+                this->writePtr = std::min(this->writeEnd, std::max(this->writeStart, this->writePtr));
             }
 
-            return std::streampos(std::streamoff(-1));
+            return (which & std::ios_base::out)
+                ? std::distance(this->writeStart, this->writePtr)
+                : std::distance(this->readStart, this->readPtr);
         }
 
         virtual typename std::basic_streambuf<T>::pos_type seekpos(typename std::basic_streambuf<T>::pos_type off, std::ios_base::openmode which) override
         {
-            if (which & std::ios_base::in)
-            {
-                this->readPtr = std::max(this->readEnd, std::min(this->readStart, this->readStart + off));
-            }
-
-            if (which & std::ios_base::out)
-            {
-                if (this->writeStart == nullptr)
-                {
-                    throw std::logic_error("Cannot write-seek in read-only buffer");
-                }
-
-                this->writePtr = std::max(this->writeEnd, std::min(this->writeStart, this->writeStart + off));
-            }
-
-            return std::streampos(std::streamoff(-1));
+            return this->seekoff(off, std::ios_base::beg, which);
         }
 
         virtual std::streamsize showmanyc() override
