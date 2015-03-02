@@ -30,6 +30,7 @@ file(GLOB LIBRARY_LIST
     src/${PROJECT_NAME}/filesystem/unix/*.?pp
     src/${PROJECT_NAME}/log/*.?pp
     src/${PROJECT_NAME}/mock/*.?pp
+    src/${PROJECT_NAME}/stream/*.?pp
 )
 add_library(${PROJECT_NAME} ${LIBRARY_LIST})
 
