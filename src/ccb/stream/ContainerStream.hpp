@@ -69,7 +69,9 @@ namespace ccb { namespace stream
 
         virtual typename std::basic_streambuf<T>::pos_type seekpos(typename std::basic_streambuf<T>::pos_type off, std::ios_base::openmode which) override
         {
-            size_t offset = std::max(static_cast<size_t>(0), static_cast<size_t>(off));
+            assert (off >= 0);
+
+            size_t offset = static_cast<size_t>(std::max(typename std::basic_streambuf<T>::pos_type(0), off));
 
             if (which & std::ios_base::out)
             {
@@ -78,10 +80,15 @@ namespace ccb { namespace stream
                     throw std::logic_error("Cannot write-seek in read-only buffer");
                 }
 
+                auto readPos = std::distance(this->CBegin(), this->readPtr);
+
                 while (this->container.size() < offset)
                 {
                     this->container.insert(this->container.end(), typename C::value_type());
                 }
+
+                this->readPtr = this->container.begin();
+                std::advance(this->readPtr, readPos);
 
                 this->writePtr = this->container.begin();
                 std::advance(this->writePtr, offset);
@@ -171,27 +178,43 @@ namespace ccb { namespace stream
 
             if (n > len)
             {
+                auto readPos = std::distance(this->CBegin(), this->readPtr);
+
                 std::copy(s + len, s + n, std::back_inserter(this->container));
                 this->writePtr = this->container.end();
+
+                this->readPtr = this->container.begin();
+                std::advance(this->readPtr, readPos);
             }
             else
             {
                 this->writePtr = endPtr;
             }
 
+            assert (this->readPtr >= this->container.begin());
+
             return n;
         }
 
         virtual typename std::basic_streambuf<T>::int_type overflow(typename std::basic_streambuf<T>::int_type c) override
         {
+            assert (this->readPtr >= this->container.begin());
+
             if (this->writePtr == this->container.end())
             {
+                auto readPos = std::distance(this->CBegin(), this->readPtr);
+
                 this->writePtr = this->container.insert(this->writePtr, static_cast<typename C::value_type>(c));
+
+                this->readPtr = this->container.begin();
+                std::advance(this->readPtr, readPos);
             }
             else
             {
                 *this->writePtr = static_cast<typename C::value_type>(c);
             }
+
+            assert (this->readPtr >= this->container.begin());
 
             return c;
         }
