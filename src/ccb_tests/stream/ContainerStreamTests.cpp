@@ -60,6 +60,22 @@ namespace ccb { namespace stream
             }
         }
 
+        void TestCanReportPosAfterPut()
+        {
+            std::vector<char> data;
+
+            ContainerOStream<char, std::vector<char>> stream(data);
+
+            for (size_t i = 0; i < 10; i++)
+            {
+                stream.put(i);
+            }
+
+            auto pos = stream.tellp();
+
+            TS_ASSERT_EQUALS(10, static_cast<int>(pos));
+        }
+
         void TestCanOverwriteData()
         {
             std::vector<char> data = { 'h', 'e', 'l', 'l', 'o' };

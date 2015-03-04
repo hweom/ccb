@@ -64,7 +64,14 @@ namespace ccb { namespace stream
 
         virtual typename std::basic_streambuf<T>::pos_type seekoff(typename std::basic_streambuf<T>::off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which) override
         {
-            return this->seekpos(this->ToGlobalOffset(off, dir, this->readPtr), which);
+            if (which & std::ios_base::out)
+            {
+                return this->seekpos(this->ToGlobalOffset(off, dir, this->writePtr), which);
+            }
+            else
+            {
+                return this->seekpos(this->ToGlobalOffset(off, dir, this->readPtr), which);
+            }
         }
 
         virtual typename std::basic_streambuf<T>::pos_type seekpos(typename std::basic_streambuf<T>::pos_type off, std::ios_base::openmode which) override
