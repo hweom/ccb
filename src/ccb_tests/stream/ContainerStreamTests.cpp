@@ -41,6 +41,25 @@ namespace ccb { namespace stream
             TS_ASSERT_EQUALS(5, data.size());
         }
 
+        void TestCanWriteWithPut()
+        {
+            std::vector<char> data;
+
+            ContainerOStream<char, std::vector<char>> stream(data);
+
+            for (size_t i = 0; i < 10; i++)
+            {
+                stream.put(i);
+            }
+
+            TS_ASSERT_EQUALS(10, data.size());
+
+            for (size_t i = 0; i < 10; i++)
+            {
+                TS_ASSERT_EQUALS(i, data[i]);
+            }
+        }
+
         void TestCanOverwriteData()
         {
             std::vector<char> data = { 'h', 'e', 'l', 'l', 'o' };

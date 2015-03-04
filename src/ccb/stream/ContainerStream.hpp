@@ -204,14 +204,15 @@ namespace ccb { namespace stream
             {
                 auto readPos = std::distance(this->CBegin(), this->readPtr);
 
-                this->writePtr = this->container.insert(this->writePtr, static_cast<typename C::value_type>(c));
+                this->container.insert(this->writePtr, static_cast<typename C::value_type>(c));
+                this->writePtr = this->container.end();
 
                 this->readPtr = this->container.begin();
                 std::advance(this->readPtr, readPos);
             }
             else
             {
-                *this->writePtr = static_cast<typename C::value_type>(c);
+                *this->writePtr++ = static_cast<typename C::value_type>(c);
             }
 
             assert (this->readPtr >= this->container.begin());
