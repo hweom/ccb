@@ -11,7 +11,6 @@ endif()
 
 # Compile using c++ 11 standart features.
 add_definitions(
-    -Wl,--no-as-needed
     -std=c++11
     -pthread
 )
