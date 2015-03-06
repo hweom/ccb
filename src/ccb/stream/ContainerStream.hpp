@@ -120,7 +120,7 @@ namespace ccb { namespace stream
         virtual std::streamsize xsgetn(typename std::basic_streambuf<T>::char_type* s, std::streamsize n) override
         {
             auto endCopyPtr = this->readPtr;
-            std::advance(endCopyPtr, n);
+            std::advance(endCopyPtr, static_cast<ptrdiff_t>(n));
 
             std::copy(this->readPtr, endCopyPtr, s);
 
@@ -176,7 +176,7 @@ namespace ccb { namespace stream
                 throw std::logic_error("Cannot write into read-only buffer");
             }
 
-            auto len = std::min(n, std::distance(this->writePtr, this->container.end()));
+            auto len = std::min(static_cast<ptrdiff_t>(n), std::distance(this->writePtr, this->container.end()));
 
             auto endPtr = this->writePtr;
             std::advance(endPtr, len);
@@ -269,8 +269,14 @@ namespace ccb { namespace stream
 
     public:
 
+#ifdef _MSC_VER
+        ContainerOStream(C& container)
+            : std::basic_ostream<T>(std::_Noinit)
+            , streambuf(container)
+#else
         ContainerOStream(C& container)
             : streambuf(container)
+#endif
         {
             this->init(&this->streambuf);
         }

@@ -129,7 +129,7 @@ namespace ccb { namespace stream
 
         virtual std::streamsize xsgetn(typename std::basic_streambuf<T>::char_type* s, std::streamsize n) override
         {
-            auto len = std::min(n, this->readEnd - this->readPtr);
+            auto len = std::min(static_cast<size_t>(n), static_cast<size_t>(this->readEnd - this->readPtr));
 
             memcpy(s, this->readPtr, len);
 
@@ -176,7 +176,7 @@ namespace ccb { namespace stream
                 throw std::logic_error("Cannot write into read-only buffer");
             }
 
-            auto len = std::min(n, this->writeEnd - this->writePtr);
+            auto len = std::min(static_cast<size_t>(n), static_cast<size_t>(this->writeEnd - this->writePtr));
 
             memcpy(this->writePtr, s, len);
 
@@ -206,9 +206,14 @@ namespace ccb { namespace stream
         MemoryStreambuf<T> streambuf;
 
     public:
-
+#ifdef _MSC_VER
+        MemoryIStream(const T* data, size_t length)
+            : std::basic_istream<T>(std::_Noinit)
+            , streambuf(data, length)
+#else
         MemoryIStream(const T* data, size_t length)
             : streambuf(data, length)
+#endif
         {
             this->init(&this->streambuf);
         }
