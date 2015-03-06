@@ -23,6 +23,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstddef>
 #include <stdexcept>
 #include <streambuf>
 
