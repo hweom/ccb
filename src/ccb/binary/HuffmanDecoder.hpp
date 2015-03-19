@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <unordered_map>
 
 namespace ccb { namespace binary
@@ -82,6 +83,10 @@ namespace ccb { namespace binary
 
     public:
 
+        HuffmanDecoder()
+        {
+        }
+
         HuffmanDecoder(std::initializer_list<std::pair<const char*, T>> table)
         {
             for (const auto& pair : table)
@@ -92,18 +97,16 @@ namespace ccb { namespace binary
 
     public:
 
+        void Add(uint32_t bits, uint32_t length, const T& value)
+        {
+            assert ((bits >> length) == 0);
+
+            this->AddCode({ bits, length }, value);
+        }
+
         void Add(const char* bits, const T& value)
         {
-            auto code = this->CodeFromString(bits);
-
-            if (this->table.count(code) > 0)
-            {
-                throw std::logic_error("Duplicate code: " + std::string(bits));
-            }
-
-            this->table[code] = value;
-
-            this->maxLength = std::max(this->maxLength, code.length);
+            this->AddCode(this->CodeFromString(bits),value);
         }
 
         template<typename BitStream>
@@ -129,6 +132,30 @@ namespace ccb { namespace binary
         }
 
     private:
+
+        std::string CodeToString(const details::Code& code) const
+        {
+            std::string result;
+
+            for (size_t i = 0; i < code.length; i++)
+            {
+                result += (((code.bits >> (code.length - i - 1)) & 1) == 0) ? "0" : "1";
+            }
+
+            return result;
+        }
+
+        void AddCode(const details::Code& code, const T& value)
+        {
+            if (this->table.count(code) > 0)
+            {
+                throw std::logic_error("Duplicate code: " + CodeToString(code));
+            }
+
+            this->table[code] = value;
+
+            this->maxLength = std::max(this->maxLength, code.length);
+        }
 
         details::Code CodeFromString(const char* str)
         {
