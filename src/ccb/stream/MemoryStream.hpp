@@ -24,6 +24,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <functional>
 #include <istream>
 #include <ostream>
 #include <stdexcept>

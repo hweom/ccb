@@ -22,7 +22,9 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cassert>
+#include <cinttypes>
 #include <unordered_map>
 
 namespace ccb { namespace binary
