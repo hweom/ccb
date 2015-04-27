@@ -128,7 +128,7 @@ namespace ccb { namespace binary
                 }
             }
 
-            throw std::runtime_error("Sequence not recognized");
+            throw std::runtime_error("Sequence not recognized: " + this->CodeToString(code));
         }
 
     private:
