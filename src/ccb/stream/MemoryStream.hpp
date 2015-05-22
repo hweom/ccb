@@ -219,5 +219,7 @@ namespace ccb { namespace stream
         {
             this->init(&this->streambuf);
         }
+
+        MemoryIStream(const MemoryIStream<T>& other) = delete;
     };
 } }
