@@ -67,6 +67,16 @@ namespace ccb { namespace stream
         {
         }
 
+        MemoryStreambuf(MemoryStreambuf<T>&& other)
+            : readStart(other.readStart)
+            , readEnd(other.readEnd)
+            , readPtr(other.readPtr)
+            , writeStart(other.writeStart)
+            , writeEnd(other.writeEnd)
+            , writePtr(other.writePtr)
+        {
+        }
+
     protected:
 
         virtual typename std::basic_streambuf<T>::pos_type seekoff(typename std::basic_streambuf<T>::off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which) override
@@ -221,5 +231,16 @@ namespace ccb { namespace stream
         }
 
         MemoryIStream(const MemoryIStream<T>& other) = delete;
+
+        MemoryIStream(MemoryIStream<T>&& other)
+            : streambuf(std::move(other.streambuf))
+        {
+        }
     };
+
+    template<typename T>
+    MemoryIStream<T> MakeInputMemoryStream(const T* data, size_t length)
+    {
+        return MemoryIStream<T>(data, length);
+    }
 } }
