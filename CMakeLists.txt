@@ -24,6 +24,7 @@ include_directories(
 file(GLOB LIBRARY_LIST
     src/${PROJECT_NAME}/*.?pp
     src/${PROJECT_NAME}/binary/*.?pp
+    src/${PROJECT_NAME}/charset/*.?pp
     src/${PROJECT_NAME}/csv/*.?pp
     src/${PROJECT_NAME}/filesystem/*.?pp
     src/${PROJECT_NAME}/filesystem/unix/*.?pp
