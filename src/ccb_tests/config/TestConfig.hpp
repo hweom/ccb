@@ -29,14 +29,43 @@
 namespace ccb { namespace config
 {
     template<typename T>
-    struct TestConfig
+    class TestConfig
     {
+    private:
+
         T value;
+
+    public:
+
+        TestConfig()
+        {
+        }
+
+        TestConfig(const T& value)
+            : value(value)
+        {
+        }
+
+    private:
 
         template<typename Archive>
         void Serialize(Archive& ar)
         {
             CCB_SERIALIZE(ar, value);
         }
+
+    public:
+
+        const T& GetValue() const
+        {
+            return this->value;
+        }
+
+        void SetValue(const T& value)
+        {
+            this->value = value;
+        }
+
+        friend class Access;
     };
 } }

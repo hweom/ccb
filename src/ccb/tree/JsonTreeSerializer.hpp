@@ -83,6 +83,8 @@ namespace ccb { namespace tree
                 stream << L"\"" << pair.first << L"\": ";
 
                 this->SerializeNode(*pair.second, stream);
+
+                firstItem = false;
             }
 
             stream << std::endl << L"}";
