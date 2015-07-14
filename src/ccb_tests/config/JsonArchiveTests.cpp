@@ -27,6 +27,7 @@
 #include <ccb/filesystem/FileSystem.hpp>
 #include <ccb_tests/config/TestConfig.hpp>
 #include <ccb_tests/config/TestDefaultConfig.hpp>
+#include <ccb_tests/config/TestProxyConfig.hpp>
 
 namespace ccb { namespace config
 {
@@ -191,6 +192,35 @@ namespace ccb { namespace config
             }
 
             TS_ASSERT_EQUALS(true, config.GetValue());
+
+            filesystem.Remove(tempFile);
+        }
+
+        void TestProxySerialization()
+        {
+            filesystem::FileSystem filesystem;
+            auto tempFile = filesystem.GetTempPath() / filesystem.UniquePath();
+
+            TestProxyConfig<bool, std::string> config1(
+                [](const std::string& v) { return v == "yes"; },
+                [](bool v) { return v ? std::string("yes") : std::string("no"); },
+                true);
+
+            {
+                JsonOutputArchive ar(tempFile.ToShortString());
+                ar.Serialize(config1, L"config");
+            }
+
+            TestProxyConfig<bool, std::string> config2(
+                [](const std::string& v) { return v == "yes"; },
+                [](bool v) { return v ? std::string("yes") : std::string("no"); });
+
+            {
+                JsonInputArchive ar(tempFile.ToShortString());
+                ar.Serialize(config2, L"config");
+            }
+
+            TS_ASSERT_EQUALS(config1.GetValue(), config2.GetValue());
 
             filesystem.Remove(tempFile);
         }

@@ -135,6 +135,11 @@ namespace ccb { namespace config
 
     public:
 
+        bool IsOutput() const
+        {
+            return false;
+        }
+
         template<typename T>
         void Serialize(T& value, const std::wstring& name)
         {

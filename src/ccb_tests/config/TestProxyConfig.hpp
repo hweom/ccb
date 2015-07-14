@@ -23,41 +23,63 @@
 #pragma once
 
 #include <functional>
+#include <string>
 
-#define CCB_WIDEN(x) L ## x
-#define CCB_SERIALIZE(ar, field)  (ar).Serialize((field), CCB_WIDEN(#field))
-#define CCB_SERIALIZE_DEFAULT(ar, field, def)  (ar).Serialize((field), CCB_WIDEN(#field), (def))
-#define CCB_SERIALIZE_AS(type, ar, field, from, to) ccb::config::ProxySerialize<type>((ar), (value), CCB_WIDEN(#field), (from), (to))
+#include <ccb/config/ConfigSerialization.hpp>
 
 namespace ccb { namespace config
 {
-    class Access
+    template<typename T, typename U>
+    class TestProxyConfig
     {
+    private:
+
+        T value;
+
+        std::function<T(const U&)> from;
+
+        std::function<U(const T&)> to;
+
     public:
 
-        template<typename Archive, typename T>
-        void Serialize(Archive& ar, T& value)
+        TestProxyConfig(
+            const std::function<T(const U&)>& from,
+            const std::function<U(const T&)>& to)
+            : from(from)
+            , to(to)
         {
-            value.Serialize(ar);
         }
+
+        TestProxyConfig(
+            const std::function<T(const U&)>& from,
+            const std::function<U(const T&)>& to,
+            const T& value)
+            : from(from)
+            , to(to)
+            , value(value)
+        {
+        }
+
+    private:
+
+        template<typename Archive>
+        void Serialize(Archive& ar)
+        {
+            CCB_SERIALIZE_AS(U, ar, this->value, this->from, this->to);
+        }
+
+    public:
+
+        const T& GetValue() const
+        {
+            return this->value;
+        }
+
+        void SetValue(const T& value)
+        {
+            this->value = value;
+        }
+
+        friend class Access;
     };
-
-    template<typename U, typename Archive, typename T, typename From, typename To>
-    inline void ProxySerialize(Archive& ar, T& value, const std::wstring& name, From from, To to)
-    {
-        if (ar.IsOutput())
-        {
-            U proxy = to(value);
-
-            ar.Serialize(proxy, name);
-        }
-        else
-        {
-            U proxy;
-
-            ar.Serialize(proxy, name);
-
-            value = from(proxy);
-        }
-    }
 } }
