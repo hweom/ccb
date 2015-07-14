@@ -141,6 +141,17 @@ namespace ccb { namespace config
             details::InputSerialize<TreeInputArchive, T>()(*this->node, value, name);
         }
 
+        template<typename T>
+        void Serialize(T& value, const std::wstring& name, const T& defaultValue)
+        {
+            if (this->node->HasNode(name))
+            {
+                return this->Serialize<T>(value, name);
+            }
+
+            value = defaultValue;
+        }
+
     protected:
 
         void SetNode(TreeMap& map)

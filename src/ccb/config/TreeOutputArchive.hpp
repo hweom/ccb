@@ -140,6 +140,12 @@ namespace ccb { namespace config
             details::OutputSerialize<TreeOutputArchive, T>()(*this->node, value, name);
         }
 
+        template<typename T>
+        void Serialize(T& value, const std::wstring& name, const T& defaultValue)
+        {
+            details::OutputSerialize<TreeOutputArchive, T>()(*this->node, value, name);
+        }
+
         TreeMap& GetTree()
         {
             return *this->node;

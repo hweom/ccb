@@ -26,6 +26,7 @@
 #include <ccb/config/JsonOutputArchive.hpp>
 #include <ccb/filesystem/FileSystem.hpp>
 #include <ccb_tests/config/TestConfig.hpp>
+#include <ccb_tests/config/TestDefaultConfig.hpp>
 
 namespace ccb { namespace config
 {
@@ -167,6 +168,29 @@ namespace ccb { namespace config
             }
 
             TS_ASSERT_EQUALS(config1.GetValue().GetValue(), config2.GetValue().GetValue());
+
+            filesystem.Remove(tempFile);
+        }
+
+        void TestBoolDefaultSerialization()
+        {
+            filesystem::FileSystem filesystem;
+            auto tempFile = filesystem.GetTempPath() / filesystem.UniquePath();
+
+            {
+                auto stream = std::ofstream(tempFile.ToShortString());
+
+                stream << "{ \"config\" : {} }";
+            }
+
+            TestDefaultConfig<bool> config(true);
+
+            {
+                JsonInputArchive ar(tempFile.ToShortString());
+                ar.Serialize(config, L"config");
+            }
+
+            TS_ASSERT_EQUALS(true, config.GetValue());
 
             filesystem.Remove(tempFile);
         }
