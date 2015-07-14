@@ -27,7 +27,8 @@
 #define CCB_WIDEN(x) L ## x
 #define CCB_SERIALIZE(ar, field)  (ar).Serialize((field), CCB_WIDEN(#field))
 #define CCB_SERIALIZE_DEFAULT(ar, field, def)  (ar).Serialize((field), CCB_WIDEN(#field), (def))
-#define CCB_SERIALIZE_AS(type, ar, field, from, to) ccb::config::ProxySerialize<type>((ar), (value), CCB_WIDEN(#field), (from), (to))
+#define CCB_SERIALIZE_AS(type, ar, field, from, to) ccb::config::ProxySerialize<type>((ar), (field), CCB_WIDEN(#field), (from), (to))
+#define CCB_SERIALIZE_AS_DEFAULT(type, ar, field, def, from, to) ccb::config::ProxySerializeDefault<type>((ar), (field), (def), CCB_WIDEN(#field), (from), (to))
 
 namespace ccb { namespace config
 {
@@ -56,6 +57,25 @@ namespace ccb { namespace config
             U proxy;
 
             ar.Serialize(proxy, name);
+
+            value = from(proxy);
+        }
+    }
+
+    template<typename U, typename Archive, typename T, typename From, typename To>
+    inline void ProxySerializeDefault(Archive& ar, T& value, const T& defaultValue, const std::wstring& name, From from, To to)
+    {
+        if (ar.IsOutput())
+        {
+            U proxy = to(value);
+
+            ar.Serialize(proxy, name);
+        }
+        else
+        {
+            U proxy;
+
+            ar.Serialize(proxy, name, static_cast<U>(to(defaultValue)));
 
             value = from(proxy);
         }
