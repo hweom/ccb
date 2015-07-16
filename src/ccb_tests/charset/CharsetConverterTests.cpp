@@ -20,40 +20,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#include <cxxtest/TestSuite.h>
 
-#include <fstream>
+#include <ccb/charset/CharsetConverter.hpp>
 
-#include <ccb/config/TreeOutputArchive.hpp>
-#include <ccb/tree/JsonTreeSerializer.hpp>
-
-namespace ccb { namespace config
+namespace ccb { namespace charset
 {
-    class JsonOutputArchive : public TreeOutputArchive
+    class CharsetConverterTests : public CxxTest::TestSuite
     {
-    private:
-
-        std::ostream* stream;
-
-        bool ownsStream = false;
-
     public:
 
-        JsonOutputArchive(const std::string& filename)
+        void TestCanDecodeUtf8WithBom()
         {
-            this->stream = new std::ofstream(filename);
-            this->ownsStream = true;
+            auto input = std::vector<uint8_t>({ 0xef, 0xbb, 0xbf, 'a', 'b', 'c', 'd', 0xd0, 0xb0 });
+
+            auto converted = std::wstring();
+
+            CharsetConverter<Encoding::UTF32, Encoding::Unknown>().ConvertBytes(input.begin(), input.end(), std::back_inserter(converted));
+
+            TS_ASSERT_EQUALS(L"abcd\u0430", converted);
         }
 
-        ~JsonOutputArchive()
+        void TestCanDecodeUtf16WithBom()
         {
-            JsonTreeSerializer().Serialize(this->GetTree(), *this->stream);
+            auto input = std::vector<uint8_t>({ 0xff, 0xfe, 'a', 0, 'b', 0, 'c', 0, 'd', 0 });
 
-            if (this->ownsStream)
-            {
-                delete this->stream;
-            }
+            auto converted = std::wstring();
+
+            CharsetConverter<Encoding::UTF32, Encoding::Unknown>().ConvertBytes(input.begin(), input.end(), std::back_inserter(converted));
+
+            TS_ASSERT_EQUALS(L"abcd", converted);
         }
-
     };
 } }

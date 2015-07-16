@@ -1,84 +1,33 @@
 #pragma once
 
+#include <cassert>
 #include <cstdint>
+#include <cstdlib>
+#include <iterator>
 
+#include <ccb/binary/ByteIterator.hpp>
 #include <ccb/charset/Encoding.hpp>
 
 namespace ccb { namespace charset
 {
     namespace details
     {
-        struct BigEndian
-        {
-            template<typename T, typename Iter>
-            Iter GetFromBytes(T& value, Iter beg, Iter end)
-            {
-                value = 0;
-
-                for (size_t i = 0; (i < sizeof(T)) && (beg != end); i++, beg++)
-                {
-                    auto byte = static_cast<uint8_t>((*beg) & 0xff);
-                    value = (value << 8) | byte;
-                }
-
-                return beg;
-            }
-
-            template<typename T, typename Iter>
-            T GetFromBytes(Iter beg, Iter end)
-            {
-                T value = 0;
-
-                this->GetFromBytes(value, beg, end);
-
-                return value;
-            }
-        };
-
-        struct LittleEndian
-        {
-            template<typename T, typename Iter>
-            Iter GetFromBytes(T& value, Iter beg, Iter end)
-            {
-                value = 0;
-
-                for (size_t i = 0; (i < sizeof(T)) && (beg != end); i++, beg++)
-                {
-                    auto byte = static_cast<uint8_t>((*beg) & 0xff);
-                    value = value | (static_cast<T>(byte) << (i * 8));
-                }
-
-                return beg;
-            }
-
-            template<typename T, typename Iter>
-            T GetFromBytes(Iter beg, Iter end)
-            {
-                T value = 0;
-
-                this->GetFromBytes(value, beg, end);
-
-                return value;
-            }
-        };
-
-        template<Encoding Enc>
-        struct Getter
+        template<Encoding Enc, typename Enable = void>
+        struct EncodingTraits
         {
             template<typename Iter>
-            Iter FromBytes (uint32_t& codePoint, Iter begin, Iter end)
+            using ByteIterator = binary::ByteIterator<binary::BigEndian, 1, Iter>;
+
+            template<typename Iter>
+            Iter From (uint32_t& codePoint, Iter begin, Iter end)
             {
                 codePoint = static_cast<uint32_t>(*begin);
 
                 return ++begin;
             }
-        };
 
-        template<Encoding Enc>
-        struct Putter
-        {
             template<typename Iter>
-            Iter ToUnits (uint32_t codePoint, Iter pos)
+            Iter To(uint32_t codePoint, Iter pos)
             {
                 *pos = codePoint;
 
@@ -87,10 +36,13 @@ namespace ccb { namespace charset
         };
 
         template<>
-        struct Getter<Encoding::UTF8>
+        struct EncodingTraits<Encoding::UTF8>
         {
             template<typename Iter>
-            Iter FromBytes (uint32_t& codePoint, Iter begin, Iter end)
+            using ByteIterator = binary::ByteIterator<binary::BigEndian, 1, Iter>;
+
+            template<typename Iter>
+            Iter From (uint32_t& codePoint, Iter begin, Iter end)
             {
                 while (begin != end)
                 {
@@ -103,10 +55,10 @@ namespace ccb { namespace charset
                         return begin;
                     }
 
-                    size_t bytes = 1;
-                    while ((bytes < 8) && ((b0 & (0x100 >> bytes)) != 0))
+                    size_t bytes = 0;
+                    while ((bytes < 8) && ((b0 & (0x80 >> bytes)) != 0))
                     {
-                        b0 &= ~(0x100 >> bytes);
+                        b0 &= ~(0x80 >> bytes);
                         bytes++;
                     }
 
@@ -145,15 +97,94 @@ namespace ccb { namespace charset
                 codePoint = 0;
                 return begin;
             }
+
+            template<typename Iter>
+            Iter To(uint32_t codePoint, Iter pos)
+            {
+                if (codePoint < 0x80)
+                {
+                    auto byte0 = static_cast<uint8_t>(codePoint);
+
+                    *(pos++) = byte0;
+                }
+                else if (codePoint < 0x800)
+                {
+                    auto byte0 = static_cast<uint8_t>(((codePoint >> 6) & 0x1f) | 0xc0);
+                    auto byte1 = static_cast<uint8_t>((codePoint & 0x3f) | 0x80);
+
+                    *(pos++) = byte0;
+                    *(pos++) = byte1;
+                }
+                else if (codePoint < 0x10000)
+                {
+                    auto byte0 = static_cast<uint8_t>(((codePoint >> 12) & 0x0f) | 0xe0);
+                    auto byte1 = static_cast<uint8_t>(((codePoint >> 6) & 0x3f) | 0x80);
+                    auto byte2 = static_cast<uint8_t>((codePoint & 0x3f) | 0x80);
+
+                    *(pos++) = byte0;
+                    *(pos++) = byte1;
+                    *(pos++) = byte2;
+                }
+                else
+                {
+                    auto byte0 = static_cast<uint8_t>(((codePoint >> 18) & 0x07) | 0xf0);
+                    auto byte1 = static_cast<uint8_t>(((codePoint >> 12) & 0x3f) | 0x80);
+                    auto byte2 = static_cast<uint8_t>(((codePoint >> 6) & 0x3f) | 0x80);
+                    auto byte3 = static_cast<uint8_t>((codePoint & 0x3f) | 0x80);
+
+                    *(pos++) = byte0;
+                    *(pos++) = byte1;
+                    *(pos++) = byte2;
+                    *(pos++) = byte3;
+                }
+
+                return pos;
+            }
         };
 
-        struct Utf16Getter
+        template<Encoding Enc>
+        struct UtfEncodingTraits
         {
-            template<typename Iter, typename Endian>
-            Iter FromBytes (uint32_t& codePoint, Iter begin, Iter end)
+        };
+
+        template<>
+        struct UtfEncodingTraits<Encoding::UTF16BE>
+        {
+            template<typename Iter>
+            using ByteIterator = binary::ByteIterator<binary::BigEndian, 2, Iter>;
+        };
+
+        template<>
+        struct UtfEncodingTraits<Encoding::UTF16LE>
+        {
+            template<typename Iter>
+            using ByteIterator = binary::ByteIterator<binary::LittleEndian, 2, Iter>;
+        };
+
+        template<>
+        struct UtfEncodingTraits<Encoding::UTF32BE>
+        {
+            template<typename Iter>
+            using ByteIterator = binary::ByteIterator<binary::BigEndian, 4, Iter>;
+        };
+
+        template<>
+        struct UtfEncodingTraits<Encoding::UTF32LE>
+        {
+            template<typename Iter>
+            using ByteIterator = binary::ByteIterator<binary::LittleEndian, 4, Iter>;
+        };
+
+        template<Encoding Enc>
+        struct EncodingTraits<Enc, typename std::enable_if<(Enc == Encoding::UTF16BE) || (Enc == Encoding::UTF16LE), void>::type>
+        {
+            template<typename Iter>
+            using ByteIterator = typename UtfEncodingTraits<Enc>::template ByteIterator<Iter>;
+
+            template<typename Iter>
+            Iter From (uint32_t& codePoint, Iter begin, Iter end)
             {
-                uint16_t u0, u1;
-                begin = Endian().GetFromBytes(u0, begin, end);
+                auto u0 = static_cast<uint16_t>(*begin++);
 
                 if ((u0 < 0xd800) || (u0 >= 0xdc00))
                 {
@@ -161,130 +192,143 @@ namespace ccb { namespace charset
                     return begin;
                 }
 
-                auto savedPos = begin;
-
-                begin = Endian().GetFromBytes(u1, begin, end);
-
-                if ((u1 < 0xdc00) || (u1 >= 0xe000))
-                {
-                    codePoint = u0;
-                    return savedPos;
-                }
+                auto u1 = static_cast<uint16_t>(*begin++);
 
                 codePoint = (static_cast<uint32_t>(u0 - 0xd800) << 16) | (u1 - 0xdc00);
+
                 return begin;
             }
-        };
 
-        template<>
-        struct Getter<Encoding::UTF16BE>
-        {
             template<typename Iter>
-            Iter FromBytes (uint32_t&  codePoint, Iter begin, Iter end)
+            Iter To(uint32_t codePoint, Iter pos)
             {
-                return Utf16Getter().FromBytes<Iter, BigEndian>(codePoint, begin, end);
+                if (codePoint < 0x10000)
+                {
+                    *(pos++) = static_cast<typename std::iterator_traits<Iter>::value_type>(codePoint);
+                }
+                else
+                {
+                    codePoint -= 0x10000;
+                    *(pos++) = static_cast<typename std::iterator_traits<Iter>::value_type>(0xd800 + (codePoint >> 10));
+                    *(pos++) = static_cast<typename std::iterator_traits<Iter>::value_type>(0xdc00 + (codePoint & 0x3ff));
+                }
             }
         };
 
-        template<>
-        struct Getter<Encoding::UTF16LE>
+        template<Encoding Enc>
+        struct EncodingTraits<Enc, typename std::enable_if<(Enc == Encoding::UTF32BE) || (Enc == Encoding::UTF32LE), void>::type>
         {
             template<typename Iter>
-            Iter FromBytes (uint32_t& codePoint, Iter begin, Iter end)
-            {
-                return Utf16Getter().FromBytes<Iter, LittleEndian>(codePoint, begin, end);
-            }
-        };
+            using ByteIterator = typename UtfEncodingTraits<Enc>::template ByteIterator<Iter>;
 
-        template<>
-        struct Getter<Encoding::UTF32BE>
-        {
             template<typename Iter>
-            Iter FromBytes (uint32_t& codePoint, Iter begin, Iter end)
+            Iter From (uint32_t& codePoint, Iter begin, Iter end)
             {
-                return BigEndian().GetFromBytes(codePoint, begin, end);
-            }
-        };
+                codePoint = static_cast<uint32_t>(*begin);
 
-        template<>
-        struct Getter<Encoding::UTF32LE>
-        {
+                return ++begin;
+            }
+
             template<typename Iter>
-            Iter FromBytes (uint32_t& codePoint, Iter begin, Iter end)
+            Iter To(uint32_t codePoint, Iter pos)
             {
-                return LittleEndian().GetFromBytes(codePoint, begin, end);
+                *pos = codePoint;
+
+                return ++pos;
             }
         };
     }
 
+    template<Encoding To, Encoding From>
     class CharsetConverter
     {
     public:
 
-        template<Encoding To, Encoding From, typename Iter1, typename Iter2>
+        template<typename Iter1, typename Iter2>
         void ConvertBytes(Iter1 beg, Iter1 end, Iter2 dest)
         {
             if (From == Encoding::Unknown)
             {
-                this->ConvertUtfBytes<To>(beg, end, dest);
+                this->ConvertUtfBytes(beg, end, dest);
             }
             else
             {
-                this->ConvertBytesToUnits<To, From, Iter1, Iter2>(beg, end, dest);
+                this->ConvertBytesToUnits<Iter1, Iter2>(beg, end, dest);
             }
+        }
+
+        template<typename Iter1, typename Iter2>
+        void Convert(Iter1 beg, Iter1 end, Iter2 dest)
+        {
+            this->ConvertUnitsToUnits<Iter1, Iter2>(beg, end, dest);
         }
 
     private:
 
-        template<Encoding To, typename Iter1, typename Iter2>
+        template<typename Iter1, typename Iter2>
         void ConvertUtfBytes(Iter1 beg, Iter1 end, Iter2 dest)
         {
-            auto bom32 = details::BigEndian().GetFromBytes<uint32_t>(beg, end);
+            auto bom32 = *binary::ByteIterator<binary::BigEndian, 4, Iter1>(beg, end);
 
-            if ((bom32 & 0xffffff00) == 0xefbbbf)
+            if ((bom32 & 0xffffff00) == 0xefbbbf00)
             {
-                this->ConvertBytesToUnits<To, Encoding::UTF8, Iter1, Iter2>(++(++(++beg)), end, dest);
+                CharsetConverter<To, Encoding::UTF8>().ConvertBytes(++(++(++beg)), end, dest);
             }
             else if (bom32 == 0xfffe0000)
             {
-                this->ConvertBytesToUnits<To, Encoding::UTF32LE, Iter1, Iter2>(++(++(++(++beg))), end, dest);
+                CharsetConverter<To, Encoding::UTF32LE>().ConvertBytes(++(++(++(++beg))), end, dest);
             }
             else if (bom32 == 0x0000fffe)
             {
-                this->ConvertBytesToUnits<To, Encoding::UTF32BE, Iter1, Iter2>(++(++(++(++beg))), end, dest);
+                CharsetConverter<To, Encoding::UTF32BE>().ConvertBytes(++(++(++(++beg))), end, dest);
             }
             else
             {
-                auto bom16 = details::BigEndian().GetFromBytes<uint16_t>(beg, end);
+                auto bom16 = *binary::ByteIterator<binary::BigEndian, 2, Iter1>(beg, end);
 
                 if (bom16 == 0xfffe)
                 {
-                    this->ConvertBytesToUnits<To, Encoding::UTF16LE, Iter1, Iter2>(++(++beg), end, dest);
+                    CharsetConverter<To, Encoding::UTF16LE>().ConvertBytes(++(++beg), end, dest);
                 }
                 else if (bom16 == 0xfeff)
                 {
-                    this->ConvertBytesToUnits<To, Encoding::UTF16BE, Iter1, Iter2>(++(++beg), end, dest);
+                    CharsetConverter<To, Encoding::UTF16BE>().ConvertBytes(++(++beg), end, dest);
                 }
-
-                this->ConvertBytesToUnits<To, Encoding::ANSI, Iter1, Iter2>(beg, end, dest);
+                else
+                {
+                    CharsetConverter<To, Encoding::ANSI>().ConvertBytes(beg, end, dest);
+                }
             }
         }
 
-        template<Encoding To, Encoding From, typename Iter1, typename Iter2>
+        template<typename Iter1, typename Iter2>
         void ConvertBytesToUnits(Iter1 beg, Iter1 end, Iter2 dest)
         {
             assert (From != Encoding::Unknown);
 
-            details::Getter<From> from;
-            details::Putter<To> to;
+            typedef typename details::EncodingTraits<From>::template ByteIterator<Iter1> ByteIter;
+
+            auto unitBeg = ByteIter(beg, end);
+            auto unitEnd = ByteIter(end, end);
+
+            this->ConvertUnitsToUnits(unitBeg, unitEnd, dest);
+        }
+
+        template<typename Iter1, typename Iter2>
+        void ConvertUnitsToUnits(Iter1 beg, Iter1 end, Iter2 dest)
+        {
+            assert (From != Encoding::Unknown);
+
+            details::EncodingTraits<From> from;
+            details::EncodingTraits<To> to;
 
             while (beg != end)
             {
                 uint32_t codePoint;
 
-                beg = from.FromBytes(codePoint, beg, end);
+                beg = from.From(codePoint, beg, end);
 
-                dest = to.ToUnits(codePoint, dest);
+                dest = to.To(codePoint, dest);
             }
         }
     };

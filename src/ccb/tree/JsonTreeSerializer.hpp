@@ -25,6 +25,7 @@
 #include <istream>
 #include <ostream>
 
+#include <ccb/charset/CharsetConverter.hpp>
 #include <ccb/tree/TreeArray.hpp>
 #include <ccb/tree/TreeMap.hpp>
 #include <ccb/tree/TreeValue.hpp>
@@ -33,21 +34,33 @@ namespace ccb { namespace tree
 {
     class JsonTreeSerializer
     {
+    private:
+
+        charset::CharsetConverter<charset::Encoding::UTF8, charset::Encoding::UTF32LE> writeConverter;
+
+        charset::CharsetConverter<charset::Encoding::UTF32LE, charset::Encoding::UTF8> readConverter;
+
     public:
 
-        void Serialize(const TreeNode& node, std::wostream& stream)
+        void Serialize(const TreeNode& node, std::ostream& stream)
         {
+            // Put UTF8 BOM
+            stream << static_cast<uint8_t>(0xef) << static_cast<uint8_t>(0xbb) << static_cast<uint8_t>(0xbf);
+
             this->SerializeNode(node, stream);
         }
 
-        std::unique_ptr<TreeNode> Deserialize(std::wistream& stream)
+        std::unique_ptr<TreeNode> Deserialize(std::istream& stream)
         {
+            // Skip BOM, if present.
+            this->SkipBom(stream);
+
             return this->DeserializeNode(stream);
         }
 
     private:
 
-        void SerializeNode(const TreeNode& node, std::wostream& stream)
+        void SerializeNode(const TreeNode& node, std::ostream& stream)
         {
             if (node.GetType() == TreeNodeType::Value)
             {
@@ -67,48 +80,56 @@ namespace ccb { namespace tree
             }
         }
 
-        void SerializeMap(const TreeMap& map, std::wostream& stream)
+        void SerializeMap(const TreeMap& map, std::ostream& stream)
         {
             bool firstItem = true;
-            stream << L"{";
+            stream << "{";
             for (const auto& pair : map.GetNodes())
             {
                 if (!firstItem)
                 {
-                    stream << L", ";
+                    stream << ", ";
                 }
 
                 stream << std::endl;
 
-                stream << L"\"" << pair.first << L"\": ";
+                stream << "\"";
+
+                this->writeConverter.Convert(pair.first.begin(), pair.first.end(), std::ostream_iterator<char>(stream));
+
+                stream << "\": ";
 
                 this->SerializeNode(*pair.second, stream);
 
                 firstItem = false;
             }
 
-            stream << std::endl << L"}";
+            stream << std::endl << "}";
         }
 
-        void SerializeArray(const TreeArray& array, std::wostream& stream)
+        void SerializeArray(const TreeArray& array, std::ostream& stream)
         {
-            stream << L"[" << std::endl;
+            stream << "[" << std::endl;
             for (const auto& node : array.GetNodes())
             {
                 this->SerializeNode(*node, stream);
 
-                stream << L", " << std::endl;
+                stream << ", " << std::endl;
             }
 
-            stream << L"]";
+            stream << "]";
         }
 
-        void SerializeValue(const TreeValue& value, std::wostream& stream)
+        void SerializeValue(const TreeValue& value, std::ostream& stream)
         {
-            stream << L"\"" << value.GetString() << L"\"";
+            stream << "\"";
+
+            this->writeConverter.Convert(value.GetString().begin(), value.GetString().end(), std::ostream_iterator<char>(stream));
+
+            stream << "\"";
         }
 
-        std::unique_ptr<TreeNode> DeserializeNode(std::wistream& stream)
+        std::unique_ptr<TreeNode> DeserializeNode(std::istream& stream)
         {
             this->SkipWhitespaces(stream);
 
@@ -118,11 +139,11 @@ namespace ccb { namespace tree
             }
 
             auto c = stream.peek();
-            if (c == L'{')
+            if (c == '{')
             {
                 return this->DeserializeMap(stream);
             }
-            else if (c == L'[')
+            else if (c == '[')
             {
                 return this->DeserializeArray(stream);
             }
@@ -132,13 +153,13 @@ namespace ccb { namespace tree
             }
         }
 
-        std::unique_ptr<TreeMap> DeserializeMap(std::wistream& stream)
+        std::unique_ptr<TreeMap> DeserializeMap(std::istream& stream)
         {
             auto map = std::unique_ptr<TreeMap>(new TreeMap());
 
             this->SkipWhitespaces(stream);
 
-            if (stream.get() != '{')
+            if (this->GetSymbol(stream) != '{')
             {
                 throw std::runtime_error("Not a JSON object");
             }
@@ -152,13 +173,13 @@ namespace ccb { namespace tree
                 // End of object.
                 if (stream.peek() == '}')
                 {
-                    stream.get();
+                    this->GetSymbol(stream);
                     break;
                 }
 
                 if (!firstItem)
                 {
-                    if (stream.get() != ',')
+                    if (this->GetSymbol(stream) != ',')
                     {
                         throw std::runtime_error("Missing comma");
                     }
@@ -166,14 +187,14 @@ namespace ccb { namespace tree
                     this->SkipWhitespaces(stream);
                 }
 
-                if (stream.get() != '"')
+                if (this->GetSymbol(stream) != '"')
                 {
                     throw std::runtime_error("Missing field name");
                 }
 
                 wchar_t c;
                 std::wstring fieldName;
-                while ((c = stream.get()) != '"')
+                while ((c = this->GetSymbol(stream)) != '"')
                 {
                     fieldName.push_back(c);
                 }
@@ -185,7 +206,7 @@ namespace ccb { namespace tree
 
                 this->SkipWhitespaces(stream);
 
-                if (stream.get() != ':')
+                if (this->GetSymbol(stream) != ':')
                 {
                     throw std::runtime_error("Bad JSON structure");
                 }
@@ -198,13 +219,13 @@ namespace ccb { namespace tree
             return map;
         }
 
-        std::unique_ptr<TreeArray> DeserializeArray(std::wistream& stream)
+        std::unique_ptr<TreeArray> DeserializeArray(std::istream& stream)
         {
             auto array = std::unique_ptr<TreeArray>(new TreeArray());
 
             this->SkipWhitespaces(stream);
 
-            if (stream.get() != '[')
+            if (this->GetSymbol(stream) != '[')
             {
                 throw std::runtime_error("Not a JSON array");
             }
@@ -220,7 +241,7 @@ namespace ccb { namespace tree
                 // End of array.
                 if (c == ']')
                 {
-                    stream.get();
+                    this->GetSymbol(stream);
                     break;
                 }
                 else
@@ -228,7 +249,7 @@ namespace ccb { namespace tree
                     // Not the first value - must be a comma.
                     if (!firstItem)
                     {
-                        if (stream.get() != ',')
+                        if (this->GetSymbol(stream) != ',')
                         {
                             throw std::runtime_error("Missing comma");
                         }
@@ -243,18 +264,18 @@ namespace ccb { namespace tree
             return array;
         }
 
-        std::unique_ptr<TreeValue> DeserializeValue(std::wistream& stream)
+        std::unique_ptr<TreeValue> DeserializeValue(std::istream& stream)
         {
             std::wstring strValue;
 
             this->SkipWhitespaces(stream);
 
-            wchar_t c = stream.get();
+            wchar_t c = this->GetSymbol(stream);
 
             // Start of a string value.
-            if (c == '"')
+            if (c == L'"')
             {
-                while ((c = stream.get()) != '"')
+                while ((c = this->GetSymbol(stream)) != L'"')
                 {
                     strValue.push_back(c);
                 }
@@ -263,10 +284,10 @@ namespace ccb { namespace tree
             {
                 strValue.push_back(c);
                 c = stream.peek();
-                while (!iswspace(c) && (c != L','))
+                while (!isspace(c) && (c != ','))
                 {
-                    stream.get();
-                    strValue.push_back(towlower(c));
+                    c = this->GetSymbol(stream);
+                    strValue.push_back(tolower(c));
                     c = stream.peek();
                 }
             }
@@ -274,12 +295,41 @@ namespace ccb { namespace tree
             return std::unique_ptr<TreeValue>(new TreeValue(strValue));
         }
 
-        void SkipWhitespaces(std::wistream& stream)
+        wchar_t GetSymbol(std::istream& stream)
         {
-            while (stream && iswspace(stream.peek()))
+            return stream.get();
+        }
+
+        void SkipWhitespaces(std::istream& stream)
+        {
+            while (stream && isspace(stream.peek()))
             {
                 stream.get();
             }
+        }
+
+        void SkipBom(std::istream& stream)
+        {
+            if (!stream || (stream.peek() != 0xef))
+            {
+                return;
+            }
+
+            stream.get();
+
+            if (!stream || (stream.peek() != 0xbb))
+            {
+                return;
+            }
+
+            stream.get();
+
+            if (!stream || (stream.peek() != 0xbf))
+            {
+                return;
+            }
+
+            stream.get();
         }
     };
 } }

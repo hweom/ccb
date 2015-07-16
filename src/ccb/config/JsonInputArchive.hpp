@@ -39,7 +39,7 @@ namespace ccb { namespace config
 
         JsonInputArchive(const std::string& filename)
         {
-            auto stream = std::wifstream(filename);
+            auto stream = std::ifstream(filename);
 
             auto node = JsonTreeSerializer().Deserialize(stream);
 
