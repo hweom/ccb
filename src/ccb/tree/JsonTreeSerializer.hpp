@@ -278,6 +278,11 @@ namespace ccb { namespace tree
                 while ((c = this->GetSymbol(stream)) != L'"')
                 {
                     strValue.push_back(c);
+
+                    if (!stream)
+                    {
+                        throw std::runtime_error("Unexpected end of stream");
+                    }
                 }
             }
             else
