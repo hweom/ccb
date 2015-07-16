@@ -29,6 +29,7 @@
 #define CCB_SERIALIZE_DEFAULT(ar, field, def)  (ar).Serialize((field), CCB_WIDEN(#field), (def))
 #define CCB_SERIALIZE_AS(type, ar, field, from, to) ccb::config::ProxySerialize<type>((ar), (field), CCB_WIDEN(#field), (from), (to))
 #define CCB_SERIALIZE_AS_DEFAULT(type, ar, field, def, from, to) ccb::config::ProxySerializeDefault<type>((ar), (field), (def), CCB_WIDEN(#field), (from), (to))
+#define CCB_SERIALIZE_CAST_DEFAULT(type, ar, field, def) ccb::config::CastSerializeDefault<type>((ar), (field), (def), CCB_WIDEN(#field))
 
 namespace ccb { namespace config
 {
@@ -78,6 +79,25 @@ namespace ccb { namespace config
             ar.Serialize(proxy, name, static_cast<U>(to(defaultValue)));
 
             value = from(proxy);
+        }
+    }
+
+    template<typename U, typename Archive, typename T>
+    inline void CastSerializeDefault(Archive& ar, T& value, const T& defaultValue, const std::wstring& name)
+    {
+        if (ar.IsOutput())
+        {
+            auto proxy = static_cast<U>(value);
+
+            ar.Serialize(proxy, name);
+        }
+        else
+        {
+            U proxy;
+
+            ar.Serialize(proxy, name, static_cast<U>(defaultValue));
+
+            value = static_cast<T>(proxy);
         }
     }
 } }

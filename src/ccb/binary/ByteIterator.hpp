@@ -27,6 +27,11 @@ namespace ccb { namespace binary
                         firstIncrement = false;
                     }
 
+                    if (pos == end)
+                    {
+                        return;
+                    }
+
                     auto byte = static_cast<uint8_t>((*pos) & 0xff);
                     value = (value << 8) | byte;
                 }
@@ -46,6 +51,11 @@ namespace ccb { namespace binary
                     {
                         pos++;
                         firstIncrement = false;
+                    }
+
+                    if (pos == end)
+                    {
+                        return;
                     }
 
                     auto byte = static_cast<uint8_t>((*pos) & 0xff);
