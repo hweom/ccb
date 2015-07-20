@@ -60,6 +60,14 @@ namespace ccb { namespace image
             this->data.resize(this->stride * this->height, 0);
         }
 
+        Image(std::vector<uint8_t>&& data, size_t width, size_t height, size_t stride)
+            : data(std::move(data))
+            , width(width)
+            , height(height)
+            , stride(stride)
+        {
+        }
+
         /// Disable copy constructor to disallow expensive image copying.
         Image(const Image& other) = delete;
 

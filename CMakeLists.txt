@@ -31,6 +31,7 @@ file(GLOB LIBRARY_LIST
     src/${PROJECT_NAME}/filesystem/unix/*.?pp
     src/${PROJECT_NAME}/image/*.?pp
     src/${PROJECT_NAME}/log/*.?pp
+    src/${PROJECT_NAME}/meta/*.?pp
     src/${PROJECT_NAME}/mock/*.?pp
     src/${PROJECT_NAME}/stream/*.?pp
     src/${PROJECT_NAME}/tree/*.?pp
