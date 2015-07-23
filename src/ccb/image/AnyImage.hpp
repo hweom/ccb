@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <vector>
 
+#include <ccb/image/AnyImageView.hpp>
 #include <ccb/image/Image.hpp>
 #include <ccb/meta/TypeList.hpp>
 
@@ -43,6 +44,99 @@ namespace ccb { namespace image
         using PixelDataTypes = meta::TypeList<
             RgbaPixel<uint8_t>,
             MonochromePixel<Alpha, bool>>;
+
+        template<typename PixelType, typename ImagePixelType>
+        struct AnyImageFunctors
+        {
+            using RawType = typename std::conditional<std::is_const<PixelType>::value, const void *, void *>::type;
+            using ByteType = typename std::conditional<std::is_const<PixelType>::value, const uint8_t *, uint8_t *>::type;
+            using ValueType = typename std::remove_const<typename PixelType::ValueType>::type;
+            using ImageValueType = typename std::remove_const<typename ImagePixelType::ValueType>::type;
+
+            std::function<AnyImageState (RawType)> GetStart() const
+            {
+                return std::function<AnyImageState (RawType)>([](RawType ptr)
+                {
+                    return AnyImageState { { reinterpret_cast<size_t>(ptr) } };
+                });
+            }
+
+            std::function<void(AnyImageState&, size_t)> GetAdvance() const
+            {
+                return std::function<void(AnyImageState&, size_t)>([](AnyImageState& state, size_t steps)
+                {
+                    return AnyImageState { { state.data[0] + steps * sizeof(typename ImagePixelType::ValueType) } };
+                });
+            }
+
+            std::function<ValueType (const AnyImageState&)> GetRead() const
+            {
+                return std::function<ValueType (const AnyImageState&)>([](const AnyImageState& state)
+                {
+                    ValueType result;
+                    PixelConverter<ImagePixelType, PixelType>()(result, *reinterpret_cast<const ImageValueType*>(state.data[0]));
+                    return result;
+                });
+            }
+
+            std::function<void (AnyImageState&, ValueType)> GetWrite() const
+            {
+                return std::function<void (AnyImageState&, ValueType)>([](AnyImageState& state, ValueType v)
+                {
+                     PixelConverter<PixelType, ImagePixelType>()(*reinterpret_cast<ImageValueType*>(state.data[0]), v);
+                });
+            }
+        };
+
+        template<typename PixelType, typename ImagePixelType>
+        struct AnyImageViewConstructor
+        {
+            AnyImageView<PixelType> operator () (
+                unsigned typeCode,
+                typename std::conditional<std::is_const<PixelType>::value, const void*, void*>::type data,
+                size_t width,
+                size_t height,
+                size_t stride)
+            {
+                if (meta::Find<ImagePixelType, PixelDataTypes>::value == typeCode)
+                {
+                    AnyImageFunctors<PixelType, ImagePixelType> funcs;
+                    return AnyImageView<PixelType>(data, width, height, stride, funcs.GetStart(), funcs.GetAdvance(), funcs.GetRead(), funcs.GetWrite());
+                }
+                else if (meta::Find<ImagePixelType, PixelDataTypes>::value == meta::Npos::value)
+                {
+                    throw std::logic_error("Image type not registered");
+                }
+                else
+                {
+                    AnyImageViewConstructor<PixelType, typename meta::Next<ImagePixelType, PixelDataTypes>::type>()(typeCode, data, width, height, stride);
+                }
+            }
+        };
+
+        template<typename PixelType>
+        struct AnyImageViewConstructor<PixelType, typename meta::Back<PixelDataTypes>::type>
+        {
+            using ImagePixelType = typename meta::Back<PixelDataTypes>::type;
+
+            AnyImageView<PixelType> operator () (
+                unsigned typeCode,
+                typename std::conditional<std::is_const<PixelType>::value, const void*, void*>::type data,
+                size_t width,
+                size_t height,
+                size_t stride)
+            {
+                if (meta::Find<ImagePixelType, PixelDataTypes>::value == typeCode)
+                {
+                    AnyImageFunctors<PixelType, ImagePixelType> funcs;
+                    return AnyImageView<PixelType>(data, width, height, stride, funcs.GetStart(), funcs.GetAdvance(), funcs.GetRead(), funcs.GetWrite());
+                }
+                else if (meta::Find<ImagePixelType, PixelDataTypes>::value == meta::Npos::value)
+                {
+                    throw std::logic_error("Image type not registered");
+                }
+            }
+        };
     }
 
     class AnyImage
@@ -92,6 +186,30 @@ namespace ccb { namespace image
             return ImageView<const SrcPixel, ViewPixel>(this->data.data(), this->width, this->height, this->stride);
         }
 
+        /// Get image view.
+        template<typename ViewPixel>
+        AnyImageView<ViewPixel> View()
+        {
+            return details::AnyImageViewConstructor<ViewPixel, typename meta::Front<details::PixelDataTypes>::type>()(
+                this->typeCode,
+                this->data.data(),
+                this->width,
+                this->height,
+                this->stride);
+        }
+
+        /// Get const image view.
+        template<typename ViewPixel>
+        AnyImageView<ViewPixel> View() const
+        {
+            return details::AnyImageViewConstructor<const ViewPixel, const typename meta::Front<details::PixelDataTypes>::type>()(
+                this->typeCode,
+                this->data.data(),
+                this->width,
+                this->height,
+                this->stride);
+        }
+
     public:
 
         template<typename Pixel>
@@ -123,49 +241,4 @@ namespace ccb { namespace image
         template<typename ViewPixel, typename Func, typename... Params>
         friend void ApplyAs(Func func, AnyImage& image, Params&&... params);
     };
-
-    namespace details
-    {
-        template<typename Pixel, typename ViewPixel, typename T>
-        struct FillPlaceholder1
-        {
-            constexpr T&& operator ()(AnyImage& image, typename std::remove_reference<T>::type& t)
-            {
-                return static_cast<T&&>(t);
-            }
-        };
-
-        template<typename Pixel, typename ViewPixel>
-        struct FillPlaceholder1<Pixel, ViewPixel, placeholder::Im1>
-        {
-            ImageView<Pixel, ViewPixel> operator ()(AnyImage& image, placeholder::Im1 t)
-            {
-                return image.ViewAs<Pixel, ViewPixel>();
-            }
-        };
-
-        template<typename Pixel, typename ViewPixel, typename Func, typename... Params>
-        void ResolveAndApply(Func func, AnyImage& image, Params&&... params)
-        {
-            auto pos = meta::Find<PixelDataTypes, Pixel>::value;
-            if (image.typeCode == pos)
-            {
-                func(details::FillPlaceholder1<Pixel, ViewPixel, Params>()(image, std::forward<Params>(params))...);
-            }
-            else if (pos == meta::Npos::value)
-            {
-                throw std::logic_error("Unregistered pixel type");
-            }
-            else
-            {
-                ResolveAndApply<typename meta::Next<PixelDataTypes, Pixel>::type, ViewPixel>(func, image, std::forward<Params>(params)...);
-            }
-        }
-    }
-
-    template<typename ViewPixel, typename Func, typename... Params>
-    inline void ApplyAs(Func func, AnyImage& image, Params&&... params)
-    {
-        details::ResolveAndApply<typename meta::Front<details::PixelDataTypes>::type, ViewPixel>(func, image, std::forward<Params>(params)...);
-    }
 } }

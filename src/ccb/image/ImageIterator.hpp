@@ -483,3 +483,4 @@ namespace ccb { namespace image
         }
     };
 } }
+

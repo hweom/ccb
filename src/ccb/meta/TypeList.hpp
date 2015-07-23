@@ -61,13 +61,13 @@ namespace ccb { namespace meta
         using type = T;
     };
 
-    template<typename... Types>
-    struct Back<TypeList<Types...>>
+    template<typename T, typename... Types>
+    struct Back<TypeList<T, Types...>>
     {
         using type = typename std::conditional<
-            std::is_same<typename TypeList<Types...>::Tail, details::NullType>::value,
-            typename TypeList<Types...>::Head,
-            typename Back<typename TypeList<Types...>::Tail>::type>::type;
+            std::is_same<typename TypeList<Types...>::Head, details::NullType>::value,
+            T,
+            typename Back<TypeList<Types...>>::type>::type;
     };
 
     template<typename T, typename TypeList>
@@ -82,6 +82,12 @@ namespace ccb { namespace meta
             std::is_same<typename Front<TypeList<Types...>>::type, T>::value,
             typename Front<typename TypeList<Types...>::Tail>::type,
             typename Next<T, typename TypeList<Types...>::Tail>::type>::type;
+    };
+
+    template<typename T>
+    struct Next<T, TypeList<>>
+    {
+        using type = details::NullType;
     };
 
     template<typename T, typename TypeList>

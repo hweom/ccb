@@ -34,18 +34,31 @@ namespace ccb { namespace image
         void TestViewAs()
         {
             auto image = AnyImage::Create<Rgba8>(100, 100);
+            Image<Rgba8> image2(100, 100);
 
-            auto rgbaView = image.ViewAs<Rgba8>();
+            auto image2View = image2.View();
 
             for (size_t i = 0; i < 100; i++)
             {
-                auto r = rgbaView.BeginRow(i);
+                auto r = image2View.BeginRow(i);
                 for (size_t j = 0; j < 100; j++, r++)
                 {
                     (*r).red = i;
                     (*r).green = 100 - i;
                     (*r).blue = 255 - i;
                     (*r).alpha = 255;
+                }
+            }
+
+            Copy(image.View<MonochromePixel<Red, uint8_t>>(), image2.View<MonochromePixel<Red, uint8_t>>());
+
+            auto image1View = image.View<Rgba8>();
+            for (size_t i = 0; i < 100; i++)
+            {
+                auto r = image1View.BeginRow(i);
+                for (size_t j = 0; j < 100; j++, r++)
+                {
+                    TS_ASSERT_EQUALS(i, (*r).red);
                 }
             }
         }

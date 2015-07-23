@@ -117,6 +117,54 @@ namespace ccb { namespace image
         }
     };
 
+    template<typename Type>
+    struct PixelChannelTraits<RgbaPixel<Type>, Red>
+    {
+        static const bool HasChannel = true;
+
+        Type Get(RgbaPixel<Type> pixel) const
+        {
+            return pixel.red;
+        }
+
+        void Set(RgbaPixel<Type>& pixel, Type v) const
+        {
+            pixel.red = v;
+        }
+    };
+
+    template<typename Type>
+    struct PixelChannelTraits<RgbaPixel<Type>, Green>
+    {
+        static const bool HasChannel = true;
+
+        Type Get(RgbaPixel<Type> pixel) const
+        {
+            return pixel.green;
+        }
+
+        void Set(RgbaPixel<Type>& pixel, Type v) const
+        {
+            pixel.green = v;
+        }
+    };
+
+    template<typename Type>
+    struct PixelChannelTraits<RgbaPixel<Type>, Blue>
+    {
+        static const bool HasChannel = true;
+
+        Type Get(RgbaPixel<Type> pixel) const
+        {
+            return pixel.blue;
+        }
+
+        void Set(RgbaPixel<Type>& pixel, Type v) const
+        {
+            pixel.blue = v;
+        }
+    };
+
     template<typename SrcType, typename DstType, typename Enable = void>
     struct TypeConverter
     {
@@ -158,7 +206,6 @@ namespace ccb { namespace image
     {
         void operator () (typename DstPixel::ValueType& d, typename ScrPixel::ValueType s)
         {
-            static_assert(sizeof(ScrPixel) == 0, "Unknown pixel conversion");
         }
     };
 

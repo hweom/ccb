@@ -22,14 +22,12 @@
 
 #pragma once
 
-#include <iostream>
-
 #include <ccb/image/ImageIterator.hpp>
 
 namespace ccb { namespace image
 {
     template<typename View1, typename View2>
-    void Copy(View1& to, View2& from)
+    void Copy(View1&& to, View2&& from)
     {
         auto w = std::min(to.GetWidth(), from.GetWidth());
         auto h = std::min(to.GetHeight(), from.GetHeight());
@@ -40,8 +38,6 @@ namespace ccb { namespace image
             for (size_t j = 0; j < w; j++, p1++, p2++)
             {
                 *p1 = *p2;
-
-//                std::cout << "(" << i << ", " << j << "): " << (*p1) << " <- " << (*p2) << std::endl;
             }
         }
     }
