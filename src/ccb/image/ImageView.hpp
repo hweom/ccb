@@ -39,6 +39,10 @@ namespace ccb { namespace image
 
         using RawType = typename std::conditional<std::is_const<SrcPixel>::value, const void*, void*>::type;
 
+        using ValueType = typename DstPixel::ValueType;
+
+        using PixelType = DstPixel;
+
     private:
 
         ByteType data;

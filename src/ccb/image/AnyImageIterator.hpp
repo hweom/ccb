@@ -71,12 +71,16 @@ namespace ccb { namespace image
 
             this->advance(this->state, 1);
 
+            this->valueValid = false;
+
             return result;
         }
 
         AnyImageIterator<PixelType>& operator ++ ()
         {
             this->advance(this->state, 1);
+
+            this->valueValid = false;
 
             return *this;
         }
@@ -117,7 +121,7 @@ namespace ccb { namespace image
     {
     public:
 
-        using ValueType = typename PixelType::ValuType;
+        using ValueType = typename PixelType::ValueType;
 
     private:
 

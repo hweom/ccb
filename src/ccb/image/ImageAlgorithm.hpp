@@ -41,4 +41,17 @@ namespace ccb { namespace image
             }
         }
     }
+
+    template<typename View>
+    void Fill(View&& view, typename View::ValueType value)
+    {
+        for (size_t i = 0; i < view.GetHeight(); i++)
+        {
+            auto r = view.BeginRow(i);
+            for (size_t j = 0; j < view.GetWidth(); j++, r++)
+            {
+                *r = value;
+            }
+        }
+    }
 } }

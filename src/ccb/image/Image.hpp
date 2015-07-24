@@ -68,6 +68,39 @@ namespace ccb { namespace image
         {
         }
 
+        Image(Image&& other) _NOEXCEPT
+            : data(std::move(other.data))
+            , width(other.width)
+            , height(other.height)
+            , stride(other.stride)
+        {
+        }
+
+        template<typename View>
+        Image(View view)
+            : width(view.GetWidth())
+            , height(view.GetHeight())
+        {
+            auto bpp = this->GetBitsPerPixel();
+
+            this->stride = (((width * bpp + 7) / 8 + 3) / 4) * 4;
+
+            this->data.resize(this->stride * this->height, 0);
+
+            auto thisView = this->View();
+
+            for (size_t i = 0; i < this->height; i++)
+            {
+                auto r1 = thisView.BeginRow(i);
+                auto r2 = view.BeginRow(i);
+
+                for (size_t j = 0; j < this->width; j++)
+                {
+                    PixelConverter<typename std::remove_const<typename View::PixelType>::type, Pixel>()((*r1), (*r2));
+                }
+            }
+        }
+
         /// Disable copy constructor to disallow expensive image copying.
         Image(const Image& other) = delete;
 
@@ -76,10 +109,45 @@ namespace ccb { namespace image
 
     public:
 
+        bool IsEmpty() const
+        {
+            return this->data.empty();
+        }
+
+        size_t GetSize() const
+        {
+            return this->data.size();
+        }
+
+        uint32_t GetWidth() const
+        {
+            return this->width;
+        }
+
+        uint32_t GetHeight() const
+        {
+            return this->height;
+        }
+
+        uint32_t GetStride() const
+        {
+            return this->stride;
+        }
+
         /// Get bits per pixel number.
         size_t GetBitsPerPixel() const
         {
             return PixelTraits<Pixel>::BitsPerPixel;
+        }
+
+        const uint8_t* GetData() const
+        {
+            return this->data.data();
+        }
+
+        uint8_t* GetData()
+        {
+            return this->data.data();
         }
 
         /// Get image view.

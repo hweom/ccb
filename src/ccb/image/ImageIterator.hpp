@@ -70,7 +70,7 @@ namespace ccb { namespace image
     public:
 
         ImageIterator(RawType data)
-            : data(reinterpret_cast<PixelType*>(data))
+            : data(reinterpret_cast<ValueType*>(data))
         {
         }
 
@@ -382,6 +382,11 @@ namespace ccb { namespace image
             return *this;
         }
 
+        friend inline ImageViewIterator<SrcIter, PixelType> operator + (ImageViewIterator<SrcIter, PixelType> iter, size_t advance)
+        {
+            return ImageViewIterator<SrcIter, PixelType>(iter.pos + advance);
+        }
+
         friend inline bool operator == (ImageViewIterator<SrcIter, PixelType> i1, ImageViewIterator<SrcIter, PixelType> i2)
         {
             return i1.pos == i2.pos;
@@ -470,6 +475,11 @@ namespace ccb { namespace image
             this->pos++;
 
             return *this;
+        }
+
+        friend inline ImageViewIterator<SrcIter, PixelType> operator + (ImageViewIterator<SrcIter, PixelType> iter, size_t advance)
+        {
+            return ImageViewIterator<SrcIter, PixelType>(iter.pos + advance);
         }
 
         friend inline bool operator == (ImageViewIterator<SrcIter, PixelType> i1, ImageViewIterator<SrcIter, PixelType> i2)

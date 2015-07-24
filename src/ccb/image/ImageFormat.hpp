@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstdlib>
 #include <limits>
 #include <tuple>
@@ -33,6 +34,14 @@ namespace ccb { namespace image
     struct Red {};
     struct Green {};
     struct Blue {};
+    struct Gray {};
+    struct Cyan {};
+    struct Magenta {};
+    struct Yellow {};
+    struct Key {};
+    struct Luminance {};
+    struct ChromaRed {};
+    struct ChromaBlue {};
 
     template<typename Channel, typename Type>
     struct MonochromePixel
@@ -46,8 +55,24 @@ namespace ccb { namespace image
     template<typename Type>
     using AlphaPixel = MonochromePixel<Alpha, Type>;
 
+    template<typename Type>
+    using GrayscalePixel = MonochromePixel<Gray, Type>;
+
     using Alpha8 = AlphaPixel<uint8_t>;
     using Alpha1 = AlphaPixel<bool>;
+
+    using Gray1 = GrayscalePixel<bool>;
+    using Gray8 = GrayscalePixel<uint8_t>;
+    using Gray16 = GrayscalePixel<uint16_t>;
+
+    template<typename Type, typename... Channels>
+    struct CompositePixel
+    {
+        using DataType = Type;
+        using ValueType = Type[sizeof...(Channels)];
+
+        Type v[sizeof...(Channels)];
+    };
 
     template<typename Type>
     struct RgbaPixel
@@ -63,6 +88,15 @@ namespace ccb { namespace image
 
     using Rgba8 = RgbaPixel<uint8_t>;
 
+    using Rgb8 = CompositePixel<uint8_t, Red, Green, Blue>;
+    using Rgb16 = CompositePixel<uint16_t, Red, Green, Blue>;
+
+    using Cmyk8 = CompositePixel<uint8_t, Cyan, Magenta, Yellow, Key>;
+    using Cmyk16 = CompositePixel<uint8_t, Cyan, Magenta, Yellow, Key>;
+
+    using Yuv8 = CompositePixel<uint8_t, Luminance, ChromaRed, ChromaBlue>;
+    using Yuv16 = CompositePixel<uint16_t, Luminance, ChromaRed, ChromaBlue>;
+
     template<typename Pixel>
     struct PixelTraits
     {
@@ -71,19 +105,29 @@ namespace ccb { namespace image
     template<typename Type>
     struct PixelTraits<RgbaPixel<Type>>
     {
+        static const size_t ComponentCount = 4;
         static const size_t BitsPerPixel = sizeof(Type) * 8 * 4;
     };
 
     template<typename Channel, typename Type>
     struct PixelTraits<MonochromePixel<Channel, Type>>
     {
+        static const size_t ComponentCount = 1;
         static const size_t BitsPerPixel = sizeof(Type) * 8;
     };
 
     template<typename Channel>
     struct PixelTraits<MonochromePixel<Channel, bool>>
     {
+        static const size_t ComponentCount = 1;
         static const size_t BitsPerPixel = 1;
+    };
+
+    template<typename Type, typename... Channels>
+    struct PixelTraits<CompositePixel<Type, Channels...>>
+    {
+        static const size_t ComponentCount = sizeof...(Channels);
+        static const size_t BitsPerPixel = sizeof...(Channels) * sizeof(Type);
     };
 
     template<typename Pixel, typename Channel>
@@ -227,6 +271,18 @@ namespace ccb { namespace image
         void operator () (Type& d, typename SrcPixel::ValueType s)
         {
             d = TypeConverter<typename SrcPixel::DataType, Type>()(PixelChannelTraits<SrcPixel, Channel>().Get(s));
+        }
+    };
+
+    /// RGBA to Gray converter.
+    template<typename SrcType, typename DstType>
+    struct PixelConverter<
+        RgbaPixel<SrcType>,
+        MonochromePixel<Gray, DstType>>
+    {
+        void operator () (DstType& d, RgbaPixel<SrcType> s)
+        {
+            d = TypeConverter<SrcType, DstType>()(static_cast<SrcType>(0.2126f * s.red + 0.7152f * s.green + 0.0722f * s.blue));
         }
     };
 

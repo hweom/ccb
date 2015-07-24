@@ -15,6 +15,11 @@ add_definitions(
     -pthread
 )
 
+# Linux-specific definitions
+if(UNIX)
+    add_definitions(-D_NOEXCEPT=noexcept)
+endif()
+
 # List of directories with header files.
 include_directories(
     src

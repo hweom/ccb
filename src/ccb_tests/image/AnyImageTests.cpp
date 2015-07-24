@@ -31,6 +31,13 @@ namespace ccb { namespace image
     {
     public:
 
+        void TestCheckType()
+        {
+            auto image = AnyImage::Create<Rgba8>(10, 10);
+
+            TS_ASSERT(image.IsOfType<Rgba8>());
+        }
+
         void TestViewAs()
         {
             auto image = AnyImage::Create<Rgba8>(100, 100);

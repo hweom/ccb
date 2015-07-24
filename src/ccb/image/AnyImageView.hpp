@@ -6,12 +6,14 @@
 
 namespace ccb { namespace image
 {
-    template<typename PixelType, typename Enable = void>
+    template<typename DstPixelType, typename Enable = void>
     class AnyImageView
     {
     public:
 
-        using ValueType = typename PixelType::ValueType;
+        using ValueType = typename DstPixelType::ValueType;
+
+        using PixelType = DstPixelType;
 
     private:
 
@@ -55,6 +57,11 @@ namespace ccb { namespace image
 
     public:
 
+        void* GetData()
+        {
+            return this->data;
+        }
+
         size_t GetWidth() const
         {
             return this->width;
@@ -82,12 +89,14 @@ namespace ccb { namespace image
         }
     };
 
-    template<typename PixelType>
-    class AnyImageView<PixelType, typename std::enable_if<std::is_const<PixelType>::value, void>::type>
+    template<typename DstPixelType>
+    class AnyImageView<DstPixelType, typename std::enable_if<std::is_const<DstPixelType>::value, void>::type>
     {
     public:
 
-        using ValueType = typename PixelType::ValuType;
+        using ValueType = typename DstPixelType::ValueType;
+
+        using PixelType = DstPixelType;
 
     private:
 
@@ -127,6 +136,11 @@ namespace ccb { namespace image
         }
 
     public:
+
+        const void* GetData() const
+        {
+            return this->data;
+        }
 
         size_t GetWidth() const
         {
