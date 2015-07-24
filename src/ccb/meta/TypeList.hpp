@@ -33,7 +33,7 @@ namespace ccb { namespace meta
         struct NullType {};
     }
 
-    struct Npos : std::integral_constant<size_t, std::numeric_limits<size_t>::max()>{};
+    struct Npos : std::integral_constant<size_t, 0xffff>{};
 
     template<typename... Types>
     struct TypeList

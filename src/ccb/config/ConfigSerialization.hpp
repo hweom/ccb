@@ -68,7 +68,7 @@ namespace ccb { namespace config
     {
         if (ar.IsOutput())
         {
-            U proxy = to(value);
+            U proxy = static_cast<U>(to(value));
 
             ar.Serialize(proxy, name);
         }

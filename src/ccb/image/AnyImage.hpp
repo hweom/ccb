@@ -64,7 +64,7 @@ namespace ccb { namespace image
             {
                 return std::function<void(AnyImageState&, size_t)>([](AnyImageState& state, size_t steps)
                 {
-                    state.data[0] += steps * sizeof(typename ImagePixelType::ValueType);
+                    state.data[0] += steps * sizeof(ImagePixelType::ValueType);
                 });
             }
 
@@ -171,7 +171,7 @@ namespace ccb { namespace image
         template<>
         struct AnyImageInfoProvider<typename meta::Back<PixelDataTypes>::type>
         {
-            using ImagePixelType = typename meta::Back<PixelDataTypes>::type;
+            using ImagePixelType = meta::Back<PixelDataTypes>::type;
 
             AnyImageInfo operator () (unsigned typeCode)
             {
@@ -279,7 +279,7 @@ namespace ccb { namespace image
         }
 
         template<typename Pixel>
-        Image<Pixel> ReinterpretAs() &&
+        Image<Pixel> ReinterpretAs()
         {
             return Image<Pixel>(std::move(this->data), width, height, stride);
         }
