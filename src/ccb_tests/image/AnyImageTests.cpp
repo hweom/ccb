@@ -69,5 +69,22 @@ namespace ccb { namespace image
                 }
             }
         }
+
+        void TestYuv8()
+        {
+            auto image = AnyImage::Create<Yuv8>(10, 10);
+
+            auto p1 = image.View<Yuv8>().BeginRow(0);
+
+            (*p1)[0] = 100;
+            (*p1)[1] = 50;
+            (*p1)[2] = 100;
+
+            auto p2 = image.View<Rgb8>().BeginRow(0);
+
+            TS_ASSERT_EQUALS(60, (*p2)[0]);
+            TS_ASSERT_EQUALS(147, (*p2)[1]);
+            TS_ASSERT_EQUALS(60, (*p2)[2]);
+        }
     };
 } }

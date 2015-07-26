@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <functional>
 
 #include <ccb/image/AnyImageIterator.hpp>
@@ -70,6 +71,14 @@ namespace ccb { namespace image
         size_t GetHeight() const
         {
             return this->height;
+        }
+
+        ValueType operator () (size_t i, size_t j) const
+        {
+            assert (i < this->width);
+            assert (j < this->height);
+
+            return *(this->BeginRow(j) + i);
         }
 
         AnyImageIterator<PixelType> BeginRow(size_t row)
@@ -150,6 +159,14 @@ namespace ccb { namespace image
         size_t GetHeight() const
         {
             return this->height;
+        }
+
+        ValueType operator () (size_t i, size_t j) const
+        {
+            assert (i < this->width);
+            assert (j < this->height);
+
+            return *(this->BeginRow(j) + i);
         }
 
         AnyImageIterator<PixelType> BeginRow(size_t row)

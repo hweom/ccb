@@ -43,50 +43,23 @@ namespace ccb { namespace image
     struct ChromaRed {};
     struct ChromaBlue {};
 
-    template<typename Channel, typename Type>
-    struct MonochromePixel
-    {
-        using DataType = Type;
-        using ValueType = Type;
-
-        Type value;
-    };
-
-    template<typename Type>
-    using AlphaPixel = MonochromePixel<Alpha, Type>;
-
-    template<typename Type>
-    using GrayscalePixel = MonochromePixel<Gray, Type>;
-
-    using Alpha8 = AlphaPixel<uint8_t>;
-    using Alpha1 = AlphaPixel<bool>;
-
-    using Gray1 = GrayscalePixel<bool>;
-    using Gray8 = GrayscalePixel<uint8_t>;
-    using Gray16 = GrayscalePixel<uint16_t>;
-
     template<typename Type, typename... Channels>
     struct CompositePixel
     {
         using DataType = Type;
-        using ValueType = Type[sizeof...(Channels)];
+        using ValueType = std::array<Type, sizeof...(Channels)>;
 
-        Type v[sizeof...(Channels)];
+        std::array<Type, sizeof...(Channels)> v;
     };
 
-    template<typename Type>
-    struct RgbaPixel
-    {
-        using DataType = Type;
-        using ValueType = RgbaPixel<Type>;
+    using Alpha8 = CompositePixel<uint8_t, Alpha>;
+    using Alpha1 = CompositePixel<bool, Alpha>;
 
-        Type red;
-        Type green;
-        Type blue;
-        Type alpha;
-    };
+    using Gray1 = CompositePixel<bool, Gray>;
+    using Gray8 = CompositePixel<uint8_t, Gray>;
+    using Gray16 = CompositePixel<uint16_t, Gray>;
 
-    using Rgba8 = RgbaPixel<uint8_t>;
+    using Rgba8 = CompositePixel<uint8_t, Red, Green, Blue, Alpha>;
 
     using Rgb8 = CompositePixel<uint8_t, Red, Green, Blue>;
     using Rgb16 = CompositePixel<uint16_t, Red, Green, Blue>;
@@ -97,30 +70,50 @@ namespace ccb { namespace image
     using Yuv8 = CompositePixel<uint8_t, Luminance, ChromaRed, ChromaBlue>;
     using Yuv16 = CompositePixel<uint16_t, Luminance, ChromaRed, ChromaBlue>;
 
+    namespace details
+    {
+        template<typename T, typename... L>
+        struct Contains : std::false_type {};
+
+        template<typename T, typename L1, typename... L>
+        struct Contains<T, L1, L...> : std::integral_constant<
+            bool,
+            std::is_same<T, L1>::value || Contains<T, L...>::value> {};
+
+        template<typename T>
+        struct Contains<T> : std::false_type {};
+
+        template<typename T, typename... L>
+        struct Offset {};
+
+        template<typename T, typename L1, typename... L>
+        struct Offset<T, L1, L...>
+            : std::integral_constant<size_t, std::is_same<T, L1>::value ? 0 : Offset<T, L...>::value> {};
+
+        template<typename Channel, typename Pixel, typename Enable = void>
+        struct HasChannel : std::false_type { };
+
+        template<typename Channel, typename Type, typename... Channels>
+        struct HasChannel<
+            Channel,
+            CompositePixel<Type, Channels...>,
+            typename std::enable_if<Contains<Channel, Channels...>::value, void>::type>
+            : std::true_type {};
+
+        template<typename Channel, typename Pixel, typename Enable = void>
+        struct ChannelOffset : std::integral_constant<size_t, 0xffff> {};
+
+        template<typename Channel, typename Type, typename... Channels>
+        struct ChannelOffset<
+            Channel,
+            CompositePixel<Type, Channels...>,
+            typename std::enable_if<Contains<Channel, Channels...>::value, void>::type>
+            : Offset<Channel, Channels...> {};
+    }
+
     template<typename Pixel>
     struct PixelTraits
     {
-    };
-
-    template<typename Type>
-    struct PixelTraits<RgbaPixel<Type>>
-    {
-        static const size_t ComponentCount = 4;
-        static const size_t BitsPerPixel = sizeof(Type) * 8 * 4;
-    };
-
-    template<typename Channel, typename Type>
-    struct PixelTraits<MonochromePixel<Channel, Type>>
-    {
-        static const size_t ComponentCount = 1;
-        static const size_t BitsPerPixel = sizeof(Type) * 8;
-    };
-
-    template<typename Channel>
-    struct PixelTraits<MonochromePixel<Channel, bool>>
-    {
-        static const size_t ComponentCount = 1;
-        static const size_t BitsPerPixel = 1;
     };
 
     template<typename Type, typename... Channels>
@@ -130,7 +123,7 @@ namespace ccb { namespace image
         static const size_t BitsPerPixel = sizeof...(Channels) * sizeof(Type);
     };
 
-    template<typename Pixel, typename Channel>
+    template<typename Pixel, typename Channel, typename Enable = void>
     struct PixelChannelTraits
     {
         static const bool HasChannel = false;
@@ -145,67 +138,22 @@ namespace ccb { namespace image
         }
     };
 
-    template<typename Type>
-    struct PixelChannelTraits<RgbaPixel<Type>, Alpha>
+    template<typename Pixel, typename Channel>
+    struct PixelChannelTraits<
+        Pixel,
+        Channel,
+        typename std::enable_if<details::HasChannel<Channel, Pixel>::value, void>::type>
     {
         static const bool HasChannel = true;
 
-        Type Get(RgbaPixel<Type> pixel) const
+        typename Pixel::DataType Get(Pixel pixel) const
         {
-            return pixel.alpha;
+            return pixel.v[details::ChannelOffset<Channel, Pixel>::value];
         }
 
-        void Set(RgbaPixel<Type>& pixel, Type v) const
+        void Set(Pixel& pixel, typename Pixel::DataType v) const
         {
-            pixel.alpha = v;
-        }
-    };
-
-    template<typename Type>
-    struct PixelChannelTraits<RgbaPixel<Type>, Red>
-    {
-        static const bool HasChannel = true;
-
-        Type Get(RgbaPixel<Type> pixel) const
-        {
-            return pixel.red;
-        }
-
-        void Set(RgbaPixel<Type>& pixel, Type v) const
-        {
-            pixel.red = v;
-        }
-    };
-
-    template<typename Type>
-    struct PixelChannelTraits<RgbaPixel<Type>, Green>
-    {
-        static const bool HasChannel = true;
-
-        Type Get(RgbaPixel<Type> pixel) const
-        {
-            return pixel.green;
-        }
-
-        void Set(RgbaPixel<Type>& pixel, Type v) const
-        {
-            pixel.green = v;
-        }
-    };
-
-    template<typename Type>
-    struct PixelChannelTraits<RgbaPixel<Type>, Blue>
-    {
-        static const bool HasChannel = true;
-
-        Type Get(RgbaPixel<Type> pixel) const
-        {
-            return pixel.blue;
-        }
-
-        void Set(RgbaPixel<Type>& pixel, Type v) const
-        {
-            pixel.blue = v;
+            pixel.v[details::ChannelOffset<Channel, Pixel>::value] = v;
         }
     };
 
