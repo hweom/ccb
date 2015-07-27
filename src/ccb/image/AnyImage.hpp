@@ -38,12 +38,14 @@ namespace ccb { namespace image
     namespace details
     {
         using PixelDataTypes = meta::TypeList<
+            Rgb8,
             Rgba8,
             Alpha1,
             Alpha8,
             Gray1,
             Gray8,
-            Yuv8>;
+            Yuv8,
+            Yuv16>;
 
         template<typename PixelType, typename ImagePixelType>
         struct AnyImageFunctors

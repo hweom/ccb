@@ -216,15 +216,6 @@ namespace ccb { namespace image
         }
     };
 
-    template<typename Type, typename Channel, typename SrcPixel, typename Enable = void>
-    struct ChannelConverter
-    {
-        Type operator () (Type d, typename SrcPixel::ValueType s)
-        {
-            return d;
-        }
-    };
-
     template<typename SrcType, typename DstType>
     struct TypeConverter<
         SrcType,
@@ -257,6 +248,33 @@ namespace ccb { namespace image
         {
             return (static_cast<DstType>(v) - static_cast<DstType>(std::numeric_limits<SrcType>::min())) /
                 (static_cast<DstType>(std::numeric_limits<SrcType>::max()) - static_cast<DstType>(std::numeric_limits<SrcType>::min()));
+        }
+    };
+
+    template<typename SrcType, typename DstType>
+    struct TypeConverter<
+        SrcType,
+        DstType,
+        typename std::enable_if<
+            !std::is_same<SrcType, DstType>::value &&
+            !std::is_same<SrcType, bool>::value &&
+            !std::is_same<DstType, bool>::value &&
+            std::is_integral<SrcType>::value &&
+            std::is_integral<DstType>::value,
+            void>::type>
+    {
+        DstType operator () (SrcType v)
+        {
+            TypeConverter<float, DstType>()(TypeConverter<SrcType, float>()(v));
+        }
+    };
+
+    template<typename Type, typename Channel, typename SrcPixel, typename Enable = void>
+    struct ChannelConverter
+    {
+        Type operator () (Type d, typename SrcPixel::ValueType s)
+        {
+            return d;
         }
     };
 
@@ -322,6 +340,61 @@ namespace ccb { namespace image
         }
     };
 
+    /// Luminance from RGB
+    template<typename Type, typename SrcType, typename... Channels>
+    struct ChannelConverter<
+        Type,
+        Luminance,
+        CompositePixel<SrcType, Channels...>,
+        typename std::enable_if<details::Contains<Red, Channels...>::value && details::Contains<Green, Channels...>::value && details::Contains<Blue, Channels...>::value, void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return
+                TypeConverter<float, Type>()(
+                    0.299f * TypeConverter<SrcType, float>()(s[details::Offset<Red, Channels...>::value]) +
+                    0.587f * TypeConverter<SrcType, float>()(s[details::Offset<Green, Channels...>::value]) +
+                    0.114f * TypeConverter<SrcType, float>()(s[details::Offset<Blue, Channels...>::value]));
+        }
+    };
+
+    /// ChromaBlue from RGB
+    template<typename Type, typename SrcType, typename... Channels>
+    struct ChannelConverter<
+        Type,
+        ChromaBlue,
+        CompositePixel<SrcType, Channels...>,
+        typename std::enable_if<details::Contains<Red, Channels...>::value && details::Contains<Green, Channels...>::value && details::Contains<Blue, Channels...>::value, void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return
+                TypeConverter<float, Type>()(
+                    0.5f -
+                    0.168736f * TypeConverter<SrcType, float>()(s[details::Offset<Red, Channels...>::value]) -
+                    0.331264f * TypeConverter<SrcType, float>()(s[details::Offset<Green, Channels...>::value]) +
+                    0.5f * TypeConverter<SrcType, float>()(s[details::Offset<Blue, Channels...>::value]));
+        }
+    };
+
+    /// ChromaRed from RGB
+    template<typename Type, typename SrcType, typename... Channels>
+    struct ChannelConverter<
+        Type,
+        ChromaRed,
+        CompositePixel<SrcType, Channels...>,
+        typename std::enable_if<details::Contains<Red, Channels...>::value && details::Contains<Green, Channels...>::value && details::Contains<Blue, Channels...>::value, void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return
+                TypeConverter<float, Type>()(
+                    0.5f +
+                    0.5f * TypeConverter<SrcType, float>()(s[details::Offset<Red, Channels...>::value]) -
+                    0.418668f * TypeConverter<SrcType, float>()(s[details::Offset<Green, Channels...>::value]) -
+                    0.081312f * TypeConverter<SrcType, float>()(s[details::Offset<Blue, Channels...>::value]));
+        }
+    };
 
     template<typename SrcPixel, typename Type, typename... Channels>
     struct ChannelDispatcher
