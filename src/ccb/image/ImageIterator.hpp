@@ -114,13 +114,13 @@ namespace ccb { namespace image
     };
 
     template<typename Channel>
-    class ImageIterator<MonochromePixel<Channel, bool>>
+    class ImageIterator<CompositePixel<bool, Channel>>
     {
     public:
 
-        using PixelType = MonochromePixel<Channel, bool>;
+        using PixelType = CompositePixel<bool, Channel>;
 
-        using ValueType = typename details::CopyConstness<bool, PixelType>::type;
+        using ValueType = typename CompositePixel<bool, Channel>::ValueType;
 
         using RawType = typename std::conditional<std::is_const<PixelType>::value, const void*, void*>::type;
 
@@ -217,23 +217,23 @@ namespace ccb { namespace image
 
         void Read()
         {
-            this->value = ((*this->data) & (1 << this->bitOffset)) != 0;
+            this->value = { ((*this->data) & (1 << this->bitOffset)) != 0 };
         }
 
         void Write()
         {
-            *this->data = (*this->data) & (~(1 << this->bitOffset)) | ((this->value ? 1 : 0) << this->bitOffset);
+            *this->data = (*this->data) & (~(1 << this->bitOffset)) | ((this->value[0] ? 1 : 0) << this->bitOffset);
         }
     };
 
     template<typename Channel>
-    class ImageIterator<const MonochromePixel<Channel, bool>>
+    class ImageIterator<const CompositePixel<bool, Channel>>
     {
     public:
 
-        using PixelType = const MonochromePixel<Channel, bool>;
+        using PixelType = const CompositePixel<bool, Channel>;
 
-        using ValueType = bool;
+        using ValueType = const typename CompositePixel<bool, Channel>::ValueType;
 
         using RawType = const void*;
 
@@ -257,7 +257,7 @@ namespace ccb { namespace image
 
         ValueType operator * ()
         {
-            return ((*this->data) & (1 << this->bitOffset)) != 0;
+            return ValueType { ((*this->data) & (1 << this->bitOffset)) != 0 };
         }
 
         ImageIterator<PixelType> operator ++ (int)

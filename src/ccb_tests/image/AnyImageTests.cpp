@@ -50,14 +50,14 @@ namespace ccb { namespace image
                 auto r = image2View.BeginRow(i);
                 for (size_t j = 0; j < 100; j++, r++)
                 {
-                    (*r).red = i;
-                    (*r).green = 100 - i;
-                    (*r).blue = 255 - i;
-                    (*r).alpha = 255;
+                    (*r)[0] = i;
+                    (*r)[1] = 100 - i;
+                    (*r)[2] = 255 - i;
+                    (*r)[3] = 255;
                 }
             }
 
-            Copy(image.View<MonochromePixel<Red, uint8_t>>(), image2.View<MonochromePixel<Red, uint8_t>>());
+            Copy(image.View<CompositePixel<uint8_t, Red>>(), image2.View<CompositePixel<uint8_t, Red>>());
 
             auto image1View = image.View<Rgba8>();
             for (size_t i = 0; i < 100; i++)
@@ -65,7 +65,7 @@ namespace ccb { namespace image
                 auto r = image1View.BeginRow(i);
                 for (size_t j = 0; j < 100; j++, r++)
                 {
-                    TS_ASSERT_EQUALS(i, (*r).red);
+                    TS_ASSERT_EQUALS(i, (*r)[0]);
                 }
             }
         }
@@ -77,14 +77,16 @@ namespace ccb { namespace image
             auto p1 = image.View<Yuv8>().BeginRow(0);
 
             (*p1)[0] = 100;
-            (*p1)[1] = 50;
-            (*p1)[2] = 100;
+            (*p1)[1] = 200;
+            (*p1)[2] = 80;
+
+            p1++;
 
             auto p2 = image.View<Rgb8>().BeginRow(0);
 
-            TS_ASSERT_EQUALS(60, (*p2)[0]);
-            TS_ASSERT_EQUALS(147, (*p2)[1]);
-            TS_ASSERT_EQUALS(60, (*p2)[2]);
+            TS_ASSERT_EQUALS(33, (*p2)[0]);
+            TS_ASSERT_EQUALS(108, (*p2)[1]);
+            TS_ASSERT_EQUALS(228, (*p2)[2]);
         }
     };
 } }

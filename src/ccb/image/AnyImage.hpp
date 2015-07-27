@@ -42,7 +42,8 @@ namespace ccb { namespace image
             Alpha1,
             Alpha8,
             Gray1,
-            Gray8>;
+            Gray8,
+            Yuv8>;
 
         template<typename PixelType, typename ImagePixelType>
         struct AnyImageFunctors

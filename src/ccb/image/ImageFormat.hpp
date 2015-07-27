@@ -48,8 +48,6 @@ namespace ccb { namespace image
     {
         using DataType = Type;
         using ValueType = std::array<Type, sizeof...(Channels)>;
-
-        std::array<Type, sizeof...(Channels)> v;
     };
 
     using Alpha8 = CompositePixel<uint8_t, Alpha>;
@@ -67,8 +65,8 @@ namespace ccb { namespace image
     using Cmyk8 = CompositePixel<uint8_t, Cyan, Magenta, Yellow, Key>;
     using Cmyk16 = CompositePixel<uint8_t, Cyan, Magenta, Yellow, Key>;
 
-    using Yuv8 = CompositePixel<uint8_t, Luminance, ChromaRed, ChromaBlue>;
-    using Yuv16 = CompositePixel<uint16_t, Luminance, ChromaRed, ChromaBlue>;
+    using Yuv8 = CompositePixel<uint8_t, Luminance, ChromaBlue, ChromaRed>;
+    using Yuv16 = CompositePixel<uint16_t, Luminance, ChromaBlue, ChromaRed>;
 
     namespace details
     {
@@ -84,11 +82,11 @@ namespace ccb { namespace image
         struct Contains<T> : std::false_type {};
 
         template<typename T, typename... L>
-        struct Offset {};
+        struct Offset : std::integral_constant<size_t, 0> {};
 
         template<typename T, typename L1, typename... L>
         struct Offset<T, L1, L...>
-            : std::integral_constant<size_t, std::is_same<T, L1>::value ? 0 : Offset<T, L...>::value> {};
+            : std::conditional<std::is_same<T, L1>::value, std::integral_constant<size_t, 0>, std::integral_constant<size_t, Offset<T, L...>::value + 1>>::type {};
 
         template<typename Channel, typename Pixel, typename Enable = void>
         struct HasChannel : std::false_type { };
@@ -120,7 +118,14 @@ namespace ccb { namespace image
     struct PixelTraits<CompositePixel<Type, Channels...>>
     {
         static const size_t ComponentCount = sizeof...(Channels);
-        static const size_t BitsPerPixel = sizeof...(Channels) * sizeof(Type);
+        static const size_t BitsPerPixel = sizeof...(Channels) * sizeof(Type) * 8;
+    };
+
+    template<typename... Channels>
+    struct PixelTraits<CompositePixel<bool, Channels...>>
+    {
+        static const size_t ComponentCount = sizeof...(Channels);
+        static const size_t BitsPerPixel = sizeof...(Channels);
     };
 
     template<typename Pixel, typename Channel, typename Enable = void>
@@ -176,7 +181,7 @@ namespace ccb { namespace image
     };
 
     template<typename T>
-    struct TypeConverter<bool, T, typename std::enable_if<std::is_arithmetic<T>::value, void>::type>
+    struct TypeConverter<bool, T, typename std::enable_if<!std::is_same<T, bool>::value && std::is_integral<T>::value, void>::type>
     {
         T operator () (bool v)
         {
@@ -185,11 +190,163 @@ namespace ccb { namespace image
     };
 
     template<typename T>
-    struct TypeConverter<T, bool, typename std::enable_if<std::is_arithmetic<T>::value, void>::type>
+    struct TypeConverter<T, bool, typename std::enable_if<!std::is_same<T, bool>::value && std::is_integral<T>::value, void>::type>
     {
         bool operator () (T v)
         {
             return v >= (std::numeric_limits<T>::max() / 2 + std::numeric_limits<T>::min() / 2) ? true : false;
+        }
+    };
+
+    template<typename T>
+    struct TypeConverter<bool, T, typename std::enable_if<!std::is_same<T, bool>::value && std::is_floating_point<T>::value, void>::type>
+    {
+        T operator () (bool v)
+        {
+            return v ? static_cast<T>(1) : static_cast<T>(0);
+        }
+    };
+
+    template<typename T>
+    struct TypeConverter<T, bool, typename std::enable_if<!std::is_same<T, bool>::value && std::is_floating_point<T>::value, void>::type>
+    {
+        bool operator () (T v)
+        {
+            return v >= static_cast<T>(0.5) ? true : false;
+        }
+    };
+
+    template<typename Type, typename Channel, typename SrcPixel, typename Enable = void>
+    struct ChannelConverter
+    {
+        Type operator () (Type d, typename SrcPixel::ValueType s)
+        {
+            return d;
+        }
+    };
+
+    template<typename SrcType, typename DstType>
+    struct TypeConverter<
+        SrcType,
+        DstType,
+        typename std::enable_if<
+            std::is_floating_point<SrcType>::value &&
+            std::is_integral<DstType>::value &&
+            !std::is_same<DstType, bool>::value,
+            void>::type>
+    {
+        DstType operator () (SrcType v)
+        {
+            return static_cast<DstType>(
+                static_cast<SrcType>(std::numeric_limits<DstType>::min()) +
+                    (static_cast<SrcType>(std::numeric_limits<DstType>::max()) - static_cast<SrcType>(std::numeric_limits<DstType>::min())) * v);
+        }
+    };
+
+    template<typename SrcType, typename DstType>
+    struct TypeConverter<
+        SrcType,
+        DstType,
+        typename std::enable_if<
+            std::is_integral<SrcType>::value &&
+            std::is_floating_point<DstType>::value &&
+            !std::is_same<SrcType, bool>::value,
+            void>::type>
+    {
+        DstType operator () (SrcType v)
+        {
+            return (static_cast<DstType>(v) - static_cast<DstType>(std::numeric_limits<SrcType>::min())) /
+                (static_cast<DstType>(std::numeric_limits<SrcType>::max()) - static_cast<DstType>(std::numeric_limits<SrcType>::min()));
+        }
+    };
+
+    /// Channel converter for the case when target channel is present among source channels.
+    template<typename Type, typename Channel, typename SrcType, typename... Channels>
+    struct ChannelConverter<Type, Channel, CompositePixel<SrcType, Channels...>, typename std::enable_if<details::Contains<Channel, Channels...>::value, void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return TypeConverter<SrcType, Type>()(s[details::Offset<Channel, Channels...>::value]);
+        }
+    };
+
+    /// Red from YUV
+    template<typename Type, typename SrcType, typename... Channels>
+    struct ChannelConverter<
+        Type,
+        Red,
+        CompositePixel<SrcType, Channels...>,
+        typename std::enable_if<details::Contains<Luminance, Channels...>::value && details::Contains<ChromaRed, Channels...>::value && details::Contains<ChromaBlue, Channels...>::value, void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return
+                TypeConverter<float, Type>()(
+                    TypeConverter<SrcType, float>()(s[details::Offset<Luminance, Channels...>::value]) +
+                    1.402f * (TypeConverter<SrcType, float>()(s[details::Offset<ChromaRed, Channels...>::value]) - 0.5f));
+        }
+    };
+
+    /// Green from YUV
+    template<typename Type, typename SrcType, typename... Channels>
+    struct ChannelConverter<
+        Type,
+        Green,
+        CompositePixel<SrcType, Channels...>,
+        typename std::enable_if<details::Contains<Luminance, Channels...>::value && details::Contains<ChromaRed, Channels...>::value && details::Contains<ChromaBlue, Channels...>::value, void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return
+                TypeConverter<float, Type>()(
+                    TypeConverter<SrcType, float>()(s[details::Offset<Luminance, Channels...>::value]) -
+                    0.34414f * (TypeConverter<SrcType, float>()(s[details::Offset<ChromaBlue, Channels...>::value]) - 0.5f) -
+                    0.71414f * (TypeConverter<SrcType, float>()(s[details::Offset<ChromaRed, Channels...>::value]) - 0.5f));
+        }
+    };
+
+    /// Blue from YUV
+    template<typename Type, typename SrcType, typename... Channels>
+    struct ChannelConverter<
+        Type,
+        Blue,
+        CompositePixel<SrcType, Channels...>,
+        typename std::enable_if<details::Contains<Luminance, Channels...>::value && details::Contains<ChromaRed, Channels...>::value && details::Contains<ChromaBlue, Channels...>::value, void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return
+                TypeConverter<float, Type>()(
+                    TypeConverter<SrcType, float>()(s[details::Offset<Luminance, Channels...>::value]) +
+                    1.772f * (TypeConverter<SrcType, float>()(s[details::Offset<ChromaBlue, Channels...>::value]) - 0.5f));
+        }
+    };
+
+
+    template<typename SrcPixel, typename Type, typename... Channels>
+    struct ChannelDispatcher
+    {
+        void operator ()(Type* values, typename SrcPixel::ValueType s)
+        {
+        }
+    };
+
+    template<typename SrcPixel, typename Type, typename C1, typename... Channels>
+    struct ChannelDispatcher<SrcPixel, Type, C1, Channels...>
+    {
+        void operator ()(Type* values, typename SrcPixel::ValueType s)
+        {
+            *values = ChannelConverter<Type, C1, SrcPixel>()(*values, s);
+
+            ChannelDispatcher<SrcPixel, Type, Channels...>()(values + 1, s);
+        }
+    };
+
+    template<typename SrcPixel, typename Type>
+    struct ChannelDispatcher<SrcPixel, Type>
+    {
+        void operator ()(Type* values, typename SrcPixel::ValueType s)
+        {
         }
     };
 
@@ -198,51 +355,40 @@ namespace ccb { namespace image
     {
         void operator () (typename DstPixel::ValueType& d, typename ScrPixel::ValueType s)
         {
+            static_assert(sizeof(typename DstPixel::ValueType) == 0, "Unsupported pixel conversion");
         }
     };
 
-    template<typename Pixel>
-    struct PixelConverter<Pixel, Pixel>
-    {
-        void operator () (typename Pixel::ValueType& d, typename Pixel::ValueType s)
-        {
-            d = s;
-        }
-    };
+//    /// Converter from same pixel types.
+//    template<typename Pixel>
+//    struct PixelConverter<Pixel, Pixel>
+//    {
+//        void operator () (typename Pixel::ValueType& d, typename Pixel::ValueType s)
+//        {
+//            d = s;
+//        }
+//    };
 
-    template<typename SrcPixel, typename Channel, typename Type>
-    struct PixelConverter<
-        SrcPixel,
-        MonochromePixel<Channel, Type>,
-        typename std::enable_if<PixelChannelTraits<SrcPixel, Channel>::HasChannel, void>::type>
-    {
-        void operator () (Type& d, typename SrcPixel::ValueType s)
-        {
-            d = TypeConverter<typename SrcPixel::DataType, Type>()(PixelChannelTraits<SrcPixel, Channel>().Get(s));
-        }
-    };
+//    /// Converter from pixels having the same layout, but different unit types.
+//    template<typename Type1, typename Type2, typename... Channels>
+//    struct PixelConverter<CompositePixel<Type1, Channels...>, CompositePixel<Type2, Channels...>>
+//    {
+//        void operator () (typename CompositePixel<Type2, Channels...>::ValueType& d, typename CompositePixel<Type1, Channels...>::ValueType s)
+//        {
+//            for (size_t i = 0; i < sizeof...(Channels); i++)
+//            {
+//                d.v[i] = TypeConverter<Type1, Type2>()(s.v[i]);
+//            }
+//        }
+//    };
 
-    /// RGBA to Gray converter.
-    template<typename SrcType, typename DstType>
-    struct PixelConverter<
-        RgbaPixel<SrcType>,
-        MonochromePixel<Gray, DstType>>
+    /// Per-channel converter specialization.
+    template<typename SrcPixel, typename Type, typename... Channels>
+    struct PixelConverter<SrcPixel, CompositePixel<Type, Channels...>>
     {
-        void operator () (DstType& d, RgbaPixel<SrcType> s)
+        void operator () (typename CompositePixel<Type, Channels...>::ValueType& d, typename SrcPixel::ValueType s)
         {
-            d = TypeConverter<SrcType, DstType>()(static_cast<SrcType>(0.2126f * s.red + 0.7152f * s.green + 0.0722f * s.blue));
-        }
-    };
-
-    template<typename DstPixel, typename Channel, typename Type>
-    struct PixelConverter<
-        MonochromePixel<Channel, Type>,
-        DstPixel,
-        typename std::enable_if<PixelChannelTraits<DstPixel, Channel>::HasChannel, void>::type>
-    {
-        void operator () (typename DstPixel::ValueType& d, Type s)
-        {
-            PixelChannelTraits<DstPixel, Channel>().Set(d, TypeConverter<Type, typename DstPixel::DataType>()(s));
+            ChannelDispatcher<SrcPixel, Type, Channels...>()(d.data(), s);
         }
     };
 } }

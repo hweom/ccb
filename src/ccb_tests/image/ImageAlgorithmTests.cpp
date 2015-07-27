@@ -43,7 +43,7 @@ namespace ccb { namespace image
                 auto r = view.BeginRow(i);
                 for (size_t j = 0; r != view.EndRow(i); r++, j++)
                 {
-                    *r = ((i & 0x1) == 1) && ((j & 0x1) == 1);
+                    (*r)[0] = ((i & 0x1) == 1) && ((j & 0x1) == 1);
                 }
             }
 
@@ -57,7 +57,7 @@ namespace ccb { namespace image
                 {
                     auto expected = ((i & 0x1) == 1) && ((j & 0x1) == 1);
 
-                    TS_ASSERT_EQUALS(expected, (*r));
+                    TS_ASSERT_EQUALS(expected, (*r)[0]);
                 }
             }
         }
@@ -75,7 +75,7 @@ namespace ccb { namespace image
                 auto r = sview.BeginRow(i);
                 for (size_t j = 0; r != sview.EndRow(i); r++, j++)
                 {
-                    *r = ((i & 0x1) == 1) && ((j & 0x1) == 1);
+                    (*r)[0] = ((i & 0x1) == 1) && ((j & 0x1) == 1);
                 }
             }
 
@@ -93,9 +93,9 @@ namespace ccb { namespace image
                 {
                     auto expected = ((i & 0x1) == 1) && ((j & 0x1) == 1) ? 0xff : 0x00;
 
-                    if (expected != (*r).alpha)
+                    if (expected != (*r)[3])
                     {
-                        TS_ASSERT_EQUALS(expected, (*r).alpha);
+                        TS_ASSERT_EQUALS(expected, (*r)[3]);
                     }
                 }
             }
