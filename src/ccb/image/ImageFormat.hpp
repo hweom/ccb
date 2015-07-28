@@ -34,7 +34,6 @@ namespace ccb { namespace image
     struct Red {};
     struct Green {};
     struct Blue {};
-    struct Gray {};
     struct Cyan {};
     struct Magenta {};
     struct Yellow {};
@@ -42,6 +41,8 @@ namespace ccb { namespace image
     struct Luminance {};
     struct ChromaRed {};
     struct ChromaBlue {};
+
+    using Gray = Luminance;
 
     template<typename Type, typename... Channels>
     struct CompositePixel
@@ -451,7 +452,7 @@ namespace ccb { namespace image
         }
     };
 
-    /// Red, Green, Blue, Luminance from Gray
+    /// Red, Green, Blue from Gray
     template<typename Type, typename Channel, typename SrcType, typename... Channels>
     struct ChannelConverter<
         Type,
@@ -459,11 +460,11 @@ namespace ccb { namespace image
         CompositePixel<SrcType, Channels...>,
         typename std::enable_if<
             details::Contains<Gray, Channels...>::value &&
+            !details::Contains<ChromaRed, Channels...>::value &&
             (
                 std::is_same<Channel, Red>::value ||
                 std::is_same<Channel, Green>::value ||
-                std::is_same<Channel, Blue>::value ||
-                std::is_same<Channel, Luminance>::value),
+                std::is_same<Channel, Blue>::value),
             void>::type>
     {
         Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
