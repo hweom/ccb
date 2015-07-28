@@ -146,5 +146,22 @@ namespace ccb { namespace image
             TS_ASSERT_EQUALS(12, (*p2)[1]);
             TS_ASSERT_EQUALS(101, (*p2)[2]);
         }
+
+        void TestGrayToRgb8()
+        {
+            auto image = AnyImage<Rgb8, Gray8>::Create<Gray8>(10, 10);
+
+            auto p1 = image.View<Gray8>().BeginRow(0);
+
+            (*p1)[0] = 200;
+
+            p1++;
+
+            auto p2 = image.View<Rgb8>().BeginRow(0);
+
+            TS_ASSERT_EQUALS(200, (*p2)[0]);
+            TS_ASSERT_EQUALS(200, (*p2)[1]);
+            TS_ASSERT_EQUALS(200, (*p2)[2]);
+        }
     };
 } }

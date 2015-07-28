@@ -451,6 +451,27 @@ namespace ccb { namespace image
         }
     };
 
+    /// Red, Green, Blue, Luminance from Gray
+    template<typename Type, typename Channel, typename SrcType, typename... Channels>
+    struct ChannelConverter<
+        Type,
+        Channel,
+        CompositePixel<SrcType, Channels...>,
+        typename std::enable_if<
+            details::Contains<Gray, Channels...>::value &&
+            (
+                std::is_same<Channel, Red>::value ||
+                std::is_same<Channel, Green>::value ||
+                std::is_same<Channel, Blue>::value ||
+                std::is_same<Channel, Luminance>::value),
+            void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return TypeConverter<SrcType, Type>()(s[details::Offset<Gray, Channels...>::value]);
+        }
+    };
+
     template<typename SrcPixel, typename Type, typename... Channels>
     struct ChannelDispatcher
     {
