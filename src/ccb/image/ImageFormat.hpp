@@ -50,14 +50,16 @@ namespace ccb { namespace image
         using ValueType = std::array<Type, sizeof...(Channels)>;
     };
 
-    using Alpha8 = CompositePixel<uint8_t, Alpha>;
     using Alpha1 = CompositePixel<bool, Alpha>;
+    using Alpha8 = CompositePixel<uint8_t, Alpha>;
+    using Alpha16 = CompositePixel<uint16_t, Alpha>;
 
     using Gray1 = CompositePixel<bool, Gray>;
     using Gray8 = CompositePixel<uint8_t, Gray>;
     using Gray16 = CompositePixel<uint16_t, Gray>;
 
     using Rgba8 = CompositePixel<uint8_t, Red, Green, Blue, Alpha>;
+    using Rgba16 = CompositePixel<uint16_t, Red, Green, Blue, Alpha>;
 
     using Rgb8 = CompositePixel<uint8_t, Red, Green, Blue>;
     using Rgb16 = CompositePixel<uint16_t, Red, Green, Blue>;
