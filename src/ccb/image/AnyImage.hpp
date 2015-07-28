@@ -29,7 +29,6 @@
 #include <ccb/image/AnyImageView.hpp>
 #include <ccb/image/Image.hpp>
 #include <ccb/image/ImageAlgorithm.hpp>
-#include <ccb/meta/TypeList.hpp>
 
 #define IMAGE_REGISTER_LAYOUT(Layout) Layout<bool>, Layout<uint8_t>
 
@@ -37,15 +36,11 @@ namespace ccb { namespace image
 {
     namespace details
     {
-        using PixelDataTypes = meta::TypeList<
-            Rgb8,
-            Rgba8,
-            Alpha1,
-            Alpha8,
-            Gray1,
-            Gray8,
-            Yuv8,
-            Yuv16>;
+        template<typename T, typename... Types>
+        struct First
+        {
+            using type = T;
+        };
 
         template<typename PixelType, typename ImagePixelType>
         struct AnyImageFunctors
@@ -90,52 +85,38 @@ namespace ccb { namespace image
             }
         };
 
-        template<typename PixelType, typename ImagePixelType>
+        template<typename ViewPixel, typename... PixelTypes>
         struct AnyImageViewConstructor
         {
-            AnyImageView<PixelType> operator () (
+            AnyImageView<ViewPixel> operator () (
                 unsigned typeCode,
-                typename std::conditional<std::is_const<PixelType>::value, const void*, void*>::type data,
+                typename std::conditional<std::is_const<ViewPixel>::value, const void*, void*>::type data,
                 size_t width,
                 size_t height,
                 size_t stride)
             {
-                if (meta::Find<ImagePixelType, PixelDataTypes>::value == typeCode)
-                {
-                    AnyImageFunctors<PixelType, ImagePixelType> funcs;
-                    return AnyImageView<PixelType>(data, width, height, stride, funcs.GetStart(), funcs.GetAdvance(), funcs.GetRead(), funcs.GetWrite());
-                }
-                else if (meta::Find<ImagePixelType, PixelDataTypes>::value == meta::Npos::value)
-                {
-                    throw std::logic_error("Image type not registered");
-                }
-                else
-                {
-                    return AnyImageViewConstructor<PixelType, typename meta::Next<ImagePixelType, PixelDataTypes>::type>()(typeCode, data, width, height, stride);
-                }
+                throw std::logic_error("Image type not registered");
             }
         };
 
-        template<typename PixelType>
-        struct AnyImageViewConstructor<PixelType, typename meta::Back<PixelDataTypes>::type>
+        template<typename ViewPixel, typename First, typename... PixelTypes>
+        struct AnyImageViewConstructor<ViewPixel, First, PixelTypes...>
         {
-            using ImagePixelType = typename meta::Back<PixelDataTypes>::type;
-
-            AnyImageView<PixelType> operator () (
+            AnyImageView<ViewPixel> operator () (
                 unsigned typeCode,
-                typename std::conditional<std::is_const<PixelType>::value, const void*, void*>::type data,
+                typename std::conditional<std::is_const<ViewPixel>::value, const void*, void*>::type data,
                 size_t width,
                 size_t height,
                 size_t stride)
             {
-                if (meta::Find<ImagePixelType, PixelDataTypes>::value == typeCode)
+                if (typeCode == 0)
                 {
-                    AnyImageFunctors<PixelType, ImagePixelType> funcs;
-                    return AnyImageView<PixelType>(data, width, height, stride, funcs.GetStart(), funcs.GetAdvance(), funcs.GetRead(), funcs.GetWrite());
+                    AnyImageFunctors<ViewPixel, First> funcs;
+                    return AnyImageView<ViewPixel>(data, width, height, stride, funcs.GetStart(), funcs.GetAdvance(), funcs.GetRead(), funcs.GetWrite());
                 }
                 else
                 {
-                    throw std::logic_error("Image type not registered");
+                    return AnyImageViewConstructor<ViewPixel, PixelTypes...>()(typeCode - 1, data, width, height, stride);
                 }
             }
         };
@@ -147,53 +128,37 @@ namespace ccb { namespace image
             size_t bitsPerPixel;
         };
 
-        template<typename ImagePixelType>
+        template<typename... PixelTypes>
         struct AnyImageInfoProvider
         {
             AnyImageInfo operator () (unsigned typeCode)
             {
-                if (meta::Find<ImagePixelType, PixelDataTypes>::value == typeCode)
-                {
-                    return AnyImageInfo
-                    {
-                        PixelTraits<ImagePixelType>::ComponentCount,
-                        PixelTraits<ImagePixelType>::BitsPerPixel
-                    };
-                }
-                else if (meta::Find<ImagePixelType, PixelDataTypes>::value == meta::Npos::value)
-                {
-                    throw std::logic_error("Image type not registered");
-                }
-                else
-                {
-                    return AnyImageInfoProvider<typename meta::Next<ImagePixelType, PixelDataTypes>::type>()(typeCode);
-                }
+                throw std::logic_error("Image type not registered");
             }
         };
 
-        template<>
-        struct AnyImageInfoProvider<typename meta::Back<PixelDataTypes>::type>
+        template<typename T, typename... PixelTypes>
+        struct AnyImageInfoProvider<T, PixelTypes...>
         {
-            using ImagePixelType = meta::Back<PixelDataTypes>::type;
-
             AnyImageInfo operator () (unsigned typeCode)
             {
-                if (meta::Find<ImagePixelType, PixelDataTypes>::value == typeCode)
+                if (typeCode == 0)
                 {
                     return AnyImageInfo
                     {
-                        PixelTraits<ImagePixelType>::ComponentCount,
-                        PixelTraits<ImagePixelType>::BitsPerPixel
+                        PixelTraits<T>::ComponentCount,
+                        PixelTraits<T>::BitsPerPixel
                     };
                 }
                 else
                 {
-                    throw std::logic_error("Image type not registered");
+                    return AnyImageInfoProvider<PixelTypes...>()(typeCode - 1);
                 }
             }
         };
     }
 
+    template<typename... PixelTypes>
     class AnyImage
     {
     private:
@@ -263,12 +228,12 @@ namespace ccb { namespace image
 
         size_t GetComponentCount() const
         {
-            return details::AnyImageInfoProvider<typename meta::Front<details::PixelDataTypes>::type>()(this->typeCode).componentCount;
+            return details::AnyImageInfoProvider<PixelTypes...>()(this->typeCode).componentCount;
         }
 
         size_t GetBitsPerPixel() const
         {
-            return details::AnyImageInfoProvider<typename meta::Front<details::PixelDataTypes>::type>()(this->typeCode).bitsPerPixel;
+            return details::AnyImageInfoProvider<PixelTypes...>()(this->typeCode).bitsPerPixel;
         }
 
         uint8_t* GetData()
@@ -323,7 +288,7 @@ namespace ccb { namespace image
         template<typename ViewPixel>
         AnyImageView<ViewPixel> View()
         {
-            return details::AnyImageViewConstructor<ViewPixel, typename meta::Front<details::PixelDataTypes>::type>()(
+            return details::AnyImageViewConstructor<ViewPixel, PixelTypes...>()(
                 this->typeCode,
                 this->data.data(),
                 this->width,
@@ -335,7 +300,7 @@ namespace ccb { namespace image
         template<typename ViewPixel>
         AnyImageView<const ViewPixel> View() const
         {
-            return details::AnyImageViewConstructor<const ViewPixel, typename meta::Front<details::PixelDataTypes>::type>()(
+            return details::AnyImageViewConstructor<const ViewPixel, PixelTypes...>()(
                 this->typeCode,
                 this->data.data(),
                 this->width,
@@ -356,7 +321,7 @@ namespace ccb { namespace image
         template<typename PixelType>
         bool IsOfType() const
         {
-            return meta::Find<typename std::remove_const<PixelType>::type, details::PixelDataTypes>::value == this->typeCode;
+            return details::Offset<PixelType, PixelTypes...>::value == this->typeCode;
         }
 
     public:
@@ -366,8 +331,8 @@ namespace ccb { namespace image
         {
             auto bpp = PixelTraits<Pixel>::BitsPerPixel;
             auto stride = (((width * bpp + 7) / 8 + 3) / 4) * 4;
-            auto typeCode = meta::Find<Pixel, details::PixelDataTypes>::value;
-            if (typeCode == meta::Npos::value)
+            auto typeCode = details::Offset<Pixel, PixelTypes...>::value;
+            if (typeCode == details::Npos::value)
             {
                 throw std::logic_error("Unregistered pixel type");
             }
@@ -378,8 +343,8 @@ namespace ccb { namespace image
         template<typename Pixel>
         static AnyImage Create(std::vector<uint8_t>&& data, size_t width, size_t height, size_t stride)
         {
-            auto typeCode = meta::Find<Pixel, details::PixelDataTypes>::value;
-            if (typeCode == meta::Npos::value)
+            auto typeCode = details::Offset<Pixel, PixelTypes...>::value;
+            if (typeCode == details::Npos::value)
             {
                 throw std::logic_error("Unregistered pixel type");
             }

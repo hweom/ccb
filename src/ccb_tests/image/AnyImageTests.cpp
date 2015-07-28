@@ -33,14 +33,14 @@ namespace ccb { namespace image
 
         void TestCheckType()
         {
-            auto image = AnyImage::Create<Rgba8>(10, 10);
+            auto image = AnyImage<Rgb8, Rgba8>::Create<Rgba8>(10, 10);
 
             TS_ASSERT(image.IsOfType<Rgba8>());
         }
 
         void TestViewAs()
         {
-            auto image = AnyImage::Create<Rgba8>(100, 100);
+            auto image = AnyImage<Rgba8>::Create<Rgba8>(100, 100);
             Image<Rgba8> image2(100, 100);
 
             auto image2View = image2.View();
@@ -72,7 +72,7 @@ namespace ccb { namespace image
 
         void TestYuv8ToRgb8()
         {
-            auto image = AnyImage::Create<Yuv8>(10, 10);
+            auto image = AnyImage<Rgb8, Yuv8>::Create<Yuv8>(10, 10);
 
             auto p1 = image.View<Yuv8>().BeginRow(0);
 
@@ -91,7 +91,7 @@ namespace ccb { namespace image
 
         void TestYuv16ToRgb8()
         {
-            auto image = AnyImage::Create<Yuv16>(10, 10);
+            auto image = AnyImage<Rgb8, Yuv16>::Create<Yuv16>(10, 10);
 
             auto p1 = image.View<Yuv16>().BeginRow(0);
 
@@ -110,7 +110,7 @@ namespace ccb { namespace image
 
         void TestRgb8ToYuv8()
         {
-            auto image = AnyImage::Create<Rgb8>(10, 10);
+            auto image = AnyImage<Rgb8, Yuv8>::Create<Rgb8>(10, 10);
 
             auto p1 = image.View<Rgb8>().BeginRow(0);
 
@@ -129,9 +129,9 @@ namespace ccb { namespace image
 
         void TestCmyk8ToRgb8()
         {
-            auto image = AnyImage::Create<Cmyk8>(10, 10);
+            auto image = AnyImage<Rgb8, Cmyk8>::Create<Cmyk8>(10, 10);
 
-            auto p1 = image.View<Rgb8>().BeginRow(0);
+            auto p1 = image.View<Cmyk8>().BeginRow(0);
 
             (*p1)[0] = 128;
             (*p1)[1] = 230;
@@ -142,9 +142,9 @@ namespace ccb { namespace image
 
             auto p2 = image.View<Rgb8>().BeginRow(0);
 
-            TS_ASSERT_EQUALS(64, (*p2)[0]);
-            TS_ASSERT_EQUALS(13, (*p2)[1]);
-            TS_ASSERT_EQUALS(102, (*p2)[2]);
+            TS_ASSERT_EQUALS(63, (*p2)[0]);
+            TS_ASSERT_EQUALS(12, (*p2)[1]);
+            TS_ASSERT_EQUALS(101, (*p2)[2]);
         }
     };
 } }

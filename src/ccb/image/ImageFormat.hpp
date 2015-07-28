@@ -70,6 +70,8 @@ namespace ccb { namespace image
 
     namespace details
     {
+        struct Npos : std::integral_constant<size_t, 0xffff> { };
+
         template<typename T, typename... L>
         struct Contains : std::false_type {};
 
@@ -82,7 +84,7 @@ namespace ccb { namespace image
         struct Contains<T> : std::false_type {};
 
         template<typename T, typename... L>
-        struct Offset : std::integral_constant<size_t, 0> {};
+        struct Offset : Npos {};
 
         template<typename T, typename L1, typename... L>
         struct Offset<T, L1, L...>
