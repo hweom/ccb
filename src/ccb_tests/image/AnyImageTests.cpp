@@ -126,5 +126,25 @@ namespace ccb { namespace image
             TS_ASSERT_EQUALS(200, (*p2)[1]);
             TS_ASSERT_EQUALS(80, (*p2)[2]);
         }
+
+        void TestCmyk8ToRgb8()
+        {
+            auto image = AnyImage::Create<Cmyk8>(10, 10);
+
+            auto p1 = image.View<Rgb8>().BeginRow(0);
+
+            (*p1)[0] = 128;
+            (*p1)[1] = 230;
+            (*p1)[2] = 51;
+            (*p1)[3] = 128;
+
+            p1++;
+
+            auto p2 = image.View<Rgb8>().BeginRow(0);
+
+            TS_ASSERT_EQUALS(64, (*p2)[0]);
+            TS_ASSERT_EQUALS(13, (*p2)[1]);
+            TS_ASSERT_EQUALS(102, (*p2)[2]);
+        }
     };
 } }

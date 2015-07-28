@@ -396,6 +396,57 @@ namespace ccb { namespace image
         }
     };
 
+    /// Red from CMYK
+    template<typename Type, typename SrcType, typename... Channels>
+    struct ChannelConverter<
+        Type,
+        Red,
+        CompositePixel<SrcType, Channels...>,
+        typename std::enable_if<details::Contains<Cyan, Channels...>::value && details::Contains<Key, Channels...>::value, void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return
+                TypeConverter<float, Type>()(
+                    (1.0f - TypeConverter<SrcType, float>()(s[details::Offset<Cyan, Channels...>::value])) *
+                    (1.0f - TypeConverter<SrcType, float>()(s[details::Offset<Key, Channels...>::value])));
+        }
+    };
+
+    /// Green from CMYK
+    template<typename Type, typename SrcType, typename... Channels>
+    struct ChannelConverter<
+        Type,
+        Green,
+        CompositePixel<SrcType, Channels...>,
+        typename std::enable_if<details::Contains<Magenta, Channels...>::value && details::Contains<Key, Channels...>::value, void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return
+                TypeConverter<float, Type>()(
+                    (1.0f - TypeConverter<SrcType, float>()(s[details::Offset<Magenta, Channels...>::value])) *
+                    (1.0f - TypeConverter<SrcType, float>()(s[details::Offset<Key, Channels...>::value])));
+        }
+    };
+
+    /// Blue from CMYK
+    template<typename Type, typename SrcType, typename... Channels>
+    struct ChannelConverter<
+        Type,
+        Blue,
+        CompositePixel<SrcType, Channels...>,
+        typename std::enable_if<details::Contains<Yellow, Channels...>::value && details::Contains<Key, Channels...>::value, void>::type>
+    {
+        Type operator () (Type d, typename CompositePixel<SrcType, Channels...>::ValueType s)
+        {
+            return
+                TypeConverter<float, Type>()(
+                    (1.0f - TypeConverter<SrcType, float>()(s[details::Offset<Yellow, Channels...>::value])) *
+                    (1.0f - TypeConverter<SrcType, float>()(s[details::Offset<Key, Channels...>::value])));
+        }
+    };
+
     template<typename SrcPixel, typename Type, typename... Channels>
     struct ChannelDispatcher
     {
@@ -431,29 +482,6 @@ namespace ccb { namespace image
             static_assert(sizeof(typename DstPixel::ValueType) == 0, "Unsupported pixel conversion");
         }
     };
-
-//    /// Converter from same pixel types.
-//    template<typename Pixel>
-//    struct PixelConverter<Pixel, Pixel>
-//    {
-//        void operator () (typename Pixel::ValueType& d, typename Pixel::ValueType s)
-//        {
-//            d = s;
-//        }
-//    };
-
-//    /// Converter from pixels having the same layout, but different unit types.
-//    template<typename Type1, typename Type2, typename... Channels>
-//    struct PixelConverter<CompositePixel<Type1, Channels...>, CompositePixel<Type2, Channels...>>
-//    {
-//        void operator () (typename CompositePixel<Type2, Channels...>::ValueType& d, typename CompositePixel<Type1, Channels...>::ValueType s)
-//        {
-//            for (size_t i = 0; i < sizeof...(Channels); i++)
-//            {
-//                d.v[i] = TypeConverter<Type1, Type2>()(s.v[i]);
-//            }
-//        }
-//    };
 
     /// Per-channel converter specialization.
     template<typename SrcPixel, typename Type, typename... Channels>
