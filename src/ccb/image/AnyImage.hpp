@@ -62,7 +62,7 @@ namespace ccb { namespace image
             {
                 return std::function<void(AnyImageState&, size_t)>([](AnyImageState& state, size_t steps)
                 {
-                    state.data[0] += steps * sizeof(typename ImagePixelType::ValueType);
+                    state.data[0] += steps * sizeof(ImagePixelType::ValueType);
                 });
             }
 

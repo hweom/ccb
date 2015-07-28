@@ -269,7 +269,7 @@ namespace ccb { namespace image
     {
         DstType operator () (SrcType v)
         {
-            TypeConverter<float, DstType>()(TypeConverter<SrcType, float>()(v));
+            return TypeConverter<float, DstType>()(TypeConverter<SrcType, float>()(v));
         }
     };
 
