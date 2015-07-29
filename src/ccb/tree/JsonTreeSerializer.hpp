@@ -266,16 +266,16 @@ namespace ccb { namespace tree
 
         std::unique_ptr<TreeValue> DeserializeValue(std::istream& stream)
         {
-            std::wstring strValue;
+            std::string strValue;
 
             this->SkipWhitespaces(stream);
 
             wchar_t c = this->GetSymbol(stream);
 
             // Start of a string value.
-            if (c == L'"')
+            if (c == '"')
             {
-                while ((c = this->GetSymbol(stream)) != L'"')
+                while ((c = this->GetSymbol(stream)) != '"')
                 {
                     strValue.push_back(c);
 
@@ -297,7 +297,10 @@ namespace ccb { namespace tree
                 }
             }
 
-            return std::unique_ptr<TreeValue>(new TreeValue(strValue));
+            std::wstring wideStringValue;
+            this->readConverter.Convert(strValue.begin(), strValue.end(), std::back_inserter(wideStringValue));
+
+            return std::unique_ptr<TreeValue>(new TreeValue(wideStringValue));
         }
 
         wchar_t GetSymbol(std::istream& stream)
