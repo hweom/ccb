@@ -53,7 +53,14 @@ namespace ccb { namespace filesystem
         {
             if (!this->path.IsEmpty())
             {
-                this->fileSystem.RemoveRecursive(this->path);
+                if(this->fileSystem.DirectoryExists(this->path))
+                {
+                    this->fileSystem.RemoveRecursive(this->path);
+                }
+                else
+                {
+                    this->fileSystem.Remove(this->path);
+                }
             }
         }
 
