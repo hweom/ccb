@@ -94,7 +94,7 @@ namespace ccb { namespace image
                 auto r1 = thisView.BeginRow(i);
                 auto r2 = view.BeginRow(i);
 
-                for (size_t j = 0; j < this->width; j++)
+                for (size_t j = 0; j < this->width; j++, r1++, r2++)
                 {
                     PixelConverter<typename std::remove_const<typename View::PixelType>::type, Pixel>()((*r1), (*r2));
                 }

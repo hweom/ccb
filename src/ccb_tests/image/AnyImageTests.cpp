@@ -70,6 +70,31 @@ namespace ccb { namespace image
             }
         }
 
+        void Test1Bit()
+        {
+            auto image = AnyImage<Gray1>::Create<Gray1>(100, 100);
+
+            auto view1 = image.View<Gray1>();
+            for (size_t i = 0; i < 100; i++)
+            {
+                auto r = view1.BeginRow(i);
+                for (size_t j = 0; j < 100; j++, r++)
+                {
+                    (*r)[0] = (i & 1) == 1;
+                }
+            }
+
+            auto view2 = image.View<Gray8>();
+            for (size_t i = 0; i < 100; i++)
+            {
+                auto r = view2.BeginRow(i);
+                for (size_t j = 0; j < 100; j++, r++)
+                {
+                    TS_ASSERT_EQUALS(((i & 1) ? 255 : 0), (*r)[0]);
+                }
+            }
+        }
+
         void TestYuv8ToRgb8()
         {
             auto image = AnyImage<Rgb8, Yuv8>::Create<Yuv8>(10, 10);

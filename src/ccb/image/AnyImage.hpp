@@ -42,7 +42,7 @@ namespace ccb { namespace image
             using type = T;
         };
 
-        template<typename PixelType, typename ImagePixelType>
+        template<typename PixelType, typename ImagePixelType, typename Enable = void>
         struct AnyImageFunctors
         {
             using RawType = typename std::conditional<std::is_const<PixelType>::value, const void *, void *>::type;
@@ -81,6 +81,75 @@ namespace ccb { namespace image
                 return std::function<void (AnyImageState&, ValueType)>([](AnyImageState& state, ValueType v)
                 {
                      PixelConverter<typename std::remove_const<PixelType>::type, typename std::remove_const<ImagePixelType>::type>()(*reinterpret_cast<ImageValueType*>(state.data[0]), v);
+                });
+            }
+        };
+
+        template<typename PixelType, typename ImagePixelType>
+        struct AnyImageFunctors<PixelType, ImagePixelType, typename std::enable_if<PixelTraits<ImagePixelType>::BitsPerPixel == 1, void>::type>
+        {
+            using RawType = typename std::conditional<std::is_const<PixelType>::value, const void *, void *>::type;
+            using ByteType = typename std::conditional<std::is_const<PixelType>::value, const uint8_t *, uint8_t *>::type;
+            using ValueType = typename std::remove_const<typename PixelType::ValueType>::type;
+            using ImageValueType = typename std::remove_const<typename ImagePixelType::ValueType>::type;
+
+            std::function<AnyImageState (RawType)> GetStart() const
+            {
+                return std::function<AnyImageState (RawType)>([](RawType ptr)
+                {
+                    return AnyImageState { { reinterpret_cast<size_t>(ptr), 0 } };
+                });
+            }
+
+            std::function<void(AnyImageState&, size_t)> GetAdvance() const
+            {
+                return std::function<void(AnyImageState&, size_t)>([](AnyImageState& state, size_t steps)
+                {
+                    state.data[0] += (steps / 8);
+                    steps = steps % 8;
+
+                    if (steps < (8 - state.data[1]))
+                    {
+                        state.data[1] += steps;
+                    }
+                    else
+                    {
+                        state.data[0]++;
+                        state.data[1] = steps - (8 - state.data[1]);
+                    }
+                });
+            }
+
+            std::function<ValueType (const AnyImageState&)> GetRead() const
+            {
+                return std::function<ValueType (const AnyImageState&)>([](const AnyImageState& state)
+                {
+                    ValueType result;
+
+                    auto bit = ((*reinterpret_cast<const uint8_t*>(state.data[0])) & (1 << state.data[1])) != 0;
+
+                    PixelConverter<typename std::remove_const<ImagePixelType>::type, typename std::remove_const<PixelType>::type>()(result, { bit });
+
+                    return result;
+                });
+            }
+
+            std::function<void (AnyImageState&, ValueType)> GetWrite() const
+            {
+                return std::function<void (AnyImageState&, ValueType)>([](AnyImageState& state, ValueType v)
+                {
+                    std::array<bool, 1> bit = { false };
+
+                    PixelConverter<typename std::remove_const<PixelType>::type, typename std::remove_const<ImagePixelType>::type>()(bit, v);
+
+                    if (bit[0])
+                    {
+                        (*reinterpret_cast<uint8_t*>(state.data[0])) |= (1 << state.data[1]);
+                    }
+                    else
+                    {
+                        (*reinterpret_cast<uint8_t*>(state.data[0])) &= ~(1 << state.data[1]);
+                    }
                 });
             }
         };
