@@ -90,6 +90,22 @@ namespace ccb { namespace filesystem
             return this->path.back();
         }
 
+        std::wstring GetExtension() const
+        {
+            if (this->path.empty())
+            {
+                return L"";
+            }
+
+            auto pos = this->path.back().find_last_of('.');
+            if (pos == std::string::npos)
+            {
+                return L"";
+            }
+
+            return this->path.back().substr(pos + 1);
+        }
+
         Path GetContainingPath() const
         {
             return Path(this->path.begin(), this->path.end()-1, this->absolute);
