@@ -195,6 +195,8 @@ namespace ccb { namespace image
             size_t componentCount;
 
             size_t bitsPerPixel;
+
+            bool hasAlpha;
         };
 
         template<typename... PixelTypes>
@@ -216,7 +218,8 @@ namespace ccb { namespace image
                     return AnyImageInfo
                     {
                         PixelTraits<T>::ComponentCount,
-                        PixelTraits<T>::BitsPerPixel
+                        PixelTraits<T>::BitsPerPixel,
+                        PixelChannelTraits<T, Alpha>::HasChannel
                     };
                 }
                 else
@@ -383,6 +386,17 @@ namespace ccb { namespace image
             Image<PixelType> image(this->width, this->height);
 
             Copy(image.View(), this->View<const PixelType>());
+
+            // If destination image contains alpha channel, and source does not, fill alpha with maximum opacity, 
+            // since Copy will not modify alpha channel.
+            if (PixelChannelTraits<PixelType, Alpha>::HasChannel &&
+                !details::AnyImageInfoProvider<PixelTypes...>()(this->typeCode).hasAlpha)
+            {
+                auto maxAlpha = std::array<uint8_t, 1>();
+                maxAlpha[0] = 255;
+
+                Fill(image.View<Alpha8>(), maxAlpha);
+            }
 
             return image;
         }
