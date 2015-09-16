@@ -32,7 +32,11 @@ namespace ccb { namespace filesystem
     {
     private:
 
-        static const unsigned wchar_t nativeSeparator;
+#ifdef _WIN32
+        static const wchar_t nativeSeparator = '\\';
+#else
+        static const wchar_t nativeSeparator = '/';
+#endif
 
     private:
 
@@ -88,6 +92,22 @@ namespace ccb { namespace filesystem
         Path GetFilename() const
         {
             return this->path.back();
+        }
+
+        std::wstring GetStem() const
+        {
+            if (this->path.empty())
+            {
+                return L"";
+            }
+
+            auto pos = this->path.back().find_last_of('.');
+            if (pos == std::string::npos)
+            {
+                return this->path.back();
+            }
+
+            return this->path.back().substr(0, pos);
         }
 
         std::wstring GetExtension() const

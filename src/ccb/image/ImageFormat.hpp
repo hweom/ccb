@@ -23,6 +23,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
 #include <tuple>
