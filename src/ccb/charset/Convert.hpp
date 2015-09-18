@@ -31,15 +31,15 @@ namespace ccb { namespace charset
         };
 
         template<typename Iter, Encoding utf>
-        struct ConvertSearcher<Ite, utf, Encoding::Last>
+        struct ConvertSearcher<Iter, utf, Encoding::Last>
         {
             std::wstring operator ()(Iter beg, Iter end, const std::string& fromEncoding)
             {
-                if (EncodingAlias().IsAliasFor(enc, fromEncoding))
+                if (EncodingAlias().IsAliasFor(Encoding::Last, fromEncoding))
                 {
                     std::wstring result;
 
-                    CharsetConverter<utf, enc>().ConvertBytes(beg, end, std::back_inserter(result));
+                    CharsetConverter<utf, Encoding::Last>().ConvertBytes(beg, end, std::back_inserter(result));
 
                     return result;
                 }
@@ -59,11 +59,10 @@ namespace ccb { namespace charset
     std::wstring ConvertBytesToPlatformUtf(Iter beg, Iter end, const std::string& fromEncoding)
     {
 #ifdef _WIN32
-        using PlatformUtf = Encoding::UTF16;
+        return details::ConvertSearcher<Iter, Encoding::UTF16, Encoding::First>()(beg, end, fromEncoding);
 #else
-        using PlatformUtf = Encoding::UTF32;
+        return details::ConvertSearcher<Iter, Encoding::UTF32, Encoding::First>()(beg, end, fromEncoding);
 #endif
 
-        return details::ConvertSearcher<Iter, PlatformUtf, Encoding::First>()(beg, end, fromEncoding);
     }
 } }
