@@ -7,6 +7,7 @@
 
 #include <ccb/binary/ByteIterator.hpp>
 #include <ccb/charset/Encoding.hpp>
+#include <ccb/charset/CharsetPage.hpp>
 
 namespace ccb { namespace charset
 {
@@ -233,6 +234,33 @@ namespace ccb { namespace charset
             Iter To(uint32_t codePoint, Iter pos)
             {
                 *pos = codePoint;
+
+                return ++pos;
+            }
+        };
+
+        template<Encoding Enc>
+        struct EncodingTraits<Enc, typename std::enable_if<CharsetPageSelector<Enc>::IS_CHARSET_PAGE, void>::type>
+        {
+            using Page = typename CharsetPageSelector<Enc>::Page;
+
+            template<typename Iter>
+            using ByteIterator = binary::ByteIterator<binary::BigEndian, 1, Iter>;
+
+            Page page;
+
+            template<typename Iter>
+            Iter From (uint32_t& codePoint, Iter begin, Iter end)
+            {
+                codePoint = this->page.ToUtf(*begin);
+
+                return ++begin;
+            }
+
+            template<typename Iter>
+            Iter To(uint32_t codePoint, Iter pos)
+            {
+                *pos = this->page.FromUtf(codePoint);
 
                 return ++pos;
             }

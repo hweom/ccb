@@ -26,6 +26,11 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#else
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 #include <ccb/filesystem/NotADirectoryException.hpp>
@@ -311,7 +316,7 @@ namespace ccb { namespace filesystem
             return result;
         }
 
-        bool RemoveDirectory(const std::string& path)
+        bool RemoveDirectory(const std::string& path) const
         {
             DIR *d = opendir(path.c_str());
 

@@ -51,5 +51,76 @@ namespace ccb { namespace charset
 
             TS_ASSERT_EQUALS(L"abcd", converted);
         }
+
+        void TestCanDecodeEncodeCp866()
+        {
+            auto map = std::unordered_map<uint8_t, uint32_t>(
+            {
+                { 0x13, 0x13 },
+                { 0x28, 0x28 },
+                { 0x7f, 0x7f },
+                { 0x80, 0x0410 },
+                { 0x99, 0x0429 },
+                { 0xB2, 0x2593 },
+                { 0xD6, 0x2553 },
+                { 0xF3, 0x0454 },
+            });
+
+            this->CheckEncodeDecode<Encoding::CP_866>(map);
+        }
+
+        void TestCanDecodeEncodeCp1251()
+        {
+            auto map = std::unordered_map<uint8_t, uint32_t>(
+            {
+                { 0x13, 0x13 },
+                { 0x28, 0x28 },
+                { 0x7f, 0x7f },
+                { 0x80, 0x0402 },
+                { 0x99, 0x2122 },
+                { 0xB2, 0x0406 },
+                { 0xD6, 0x0426 },
+                { 0xF3, 0x0443 },
+            });
+
+            this->CheckEncodeDecode<Encoding::CP_1251>(map);
+        }
+
+        void TestCanDecodeEncodeKoi8()
+        {
+            auto map = std::unordered_map<uint8_t, uint32_t>(
+            {
+                { 0x13, 0x13 },
+                { 0x28, 0x28 },
+                { 0x7f, 0x7f },
+                { 0x80, 0x2500 },
+                { 0x99, 0x2265 },
+                { 0xB2, 0x2561 },
+                { 0xD6, 0x0436 },
+                { 0xF3, 0x0421 },
+            });
+
+            this->CheckEncodeDecode<Encoding::KOI8_R>(map);
+        }
+
+    protected:
+
+        template<Encoding Enc>
+        void CheckEncodeDecode(const std::unordered_map<uint8_t, uint32_t>& cases)
+        {
+            CharsetConverter<Encoding::UTF32, Enc> converter;
+
+            for (const auto& pair : cases)
+            {
+                std::string s1;
+                std::wstring r1;
+
+                s1.push_back(pair.first);
+                converter.ConvertBytes(s1.begin(), s1.end(), std::back_inserter(r1));
+
+                TS_ASSERT_EQUALS(1, r1.size());
+                TS_ASSERT_EQUALS(pair.second, r1[0]);
+            }
+        }
     };
 } }

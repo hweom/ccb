@@ -1,0 +1,69 @@
+#pragma once
+
+#include <string>
+
+#include <ccb/charset/CharsetConverter.hpp>
+#include <ccb/charset/Encoding.hpp>
+#include <ccb/charset/EncodingAlias.hpp>
+
+namespace ccb { namespace charset
+{
+    namespace details
+    {
+        template<typename Iter, Encoding utf, Encoding enc>
+        struct ConvertSearcher
+        {
+            std::wstring operator ()(Iter beg, Iter end, const std::string& fromEncoding)
+            {
+                if (EncodingAlias().IsAliasFor(enc, fromEncoding))
+                {
+                    std::wstring result;
+
+                    CharsetConverter<utf, enc>().ConvertBytes(beg, end, std::back_inserter(result));
+
+                    return result;
+                }
+                else
+                {
+                    ConvertSearcher<Iter, utf, static_cast<Encoding>(static_cast<unsigned>(enc) + 1)>()(beg, end, fromEncoding);
+                }
+            }
+        };
+
+        template<typename Iter, Encoding utf>
+        struct ConvertSearcher<Ite, utf, Encoding::Last>
+        {
+            std::wstring operator ()(Iter beg, Iter end, const std::string& fromEncoding)
+            {
+                if (EncodingAlias().IsAliasFor(enc, fromEncoding))
+                {
+                    std::wstring result;
+
+                    CharsetConverter<utf, enc>().ConvertBytes(beg, end, std::back_inserter(result));
+
+                    return result;
+                }
+                else
+                {
+                    std::wstring result;
+
+                    CharsetConverter<utf, Encoding::Unknown>().ConvertBytes(beg, end, std::back_inserter(result));
+
+                    return result;
+                }
+            }
+        };
+    }
+
+    template<typename Iter>
+    std::wstring ConvertBytesToPlatformUtf(Iter beg, Iter end, const std::string& fromEncoding)
+    {
+#ifdef _WIN32
+        using PlatformUtf = Encoding::UTF16;
+#else
+        using PlatformUtf = Encoding::UTF32;
+#endif
+
+        return details::ConvertSearcher<Iter, PlatformUtf, Encoding::First>()(beg, end, fromEncoding);
+    }
+} }

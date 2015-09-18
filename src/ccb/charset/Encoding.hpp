@@ -18,9 +18,18 @@ namespace ccb { namespace charset
 
         UTF32LE,
 
-        UTF16 = Encoding::UTF16BE,
+        KOI8_R,
 
-        UTF32 = Encoding::UTF32BE
+        CP_866,
 
+        CP_1251,
+
+        UTF16 = Encoding::UTF16LE,
+
+        UTF32 = Encoding::UTF32LE,
+
+        First = ANSI,
+
+        Last = CP_1251
     };
 } }
