@@ -25,7 +25,7 @@ namespace ccb { namespace charset
                 }
                 else
                 {
-                    ConvertSearcher<Iter, utf, static_cast<Encoding>(static_cast<unsigned>(enc) + 1)>()(beg, end, fromEncoding);
+                    return ConvertSearcher<Iter, utf, static_cast<Encoding>(static_cast<unsigned>(enc) + 1)>()(beg, end, fromEncoding);
                 }
             }
         };

@@ -47,6 +47,10 @@ namespace ccb { namespace charset
                 {
                     return byte;
                 }
+                else
+                {
+                    return codePoint;
+                }
             }
         }
 

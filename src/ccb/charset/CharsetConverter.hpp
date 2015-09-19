@@ -205,14 +205,16 @@ namespace ccb { namespace charset
             {
                 if (codePoint < 0x10000)
                 {
-                    *(pos++) = static_cast<typename std::iterator_traits<Iter>::value_type>(codePoint);
+                    *(pos++) = codePoint;
                 }
                 else
                 {
                     codePoint -= 0x10000;
-                    *(pos++) = static_cast<typename std::iterator_traits<Iter>::value_type>(0xd800 + (codePoint >> 10));
-                    *(pos++) = static_cast<typename std::iterator_traits<Iter>::value_type>(0xdc00 + (codePoint & 0x3ff));
+                    *(pos++) = (0xd800 + (codePoint >> 10));
+                    *(pos++) = (0xdc00 + (codePoint & 0x3ff));
                 }
+
+                return pos;
             }
         };
 
