@@ -39,7 +39,7 @@ namespace ccb { namespace crypt
         {
             std::default_random_engine engine;
 
-            for (size_t i = 0; i < 1; i++)
+            for (size_t i = 0; i < 10; i++)
             {
                 // Generate key.
                 auto keyLength = 16;
