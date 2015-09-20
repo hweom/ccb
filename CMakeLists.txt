@@ -31,6 +31,7 @@ file(GLOB LIBRARY_LIST
     src/${PROJECT_NAME}/binary/*.?pp
     src/${PROJECT_NAME}/charset/*.?pp
     src/${PROJECT_NAME}/config/*.?pp
+    src/${PROJECT_NAME}/crypt/*.?pp
     src/${PROJECT_NAME}/csv/*.?pp
     src/${PROJECT_NAME}/filesystem/*.?pp
     src/${PROJECT_NAME}/filesystem/unix/*.?pp
@@ -46,11 +47,31 @@ add_library(${PROJECT_NAME} ${LIBRARY_LIST})
 # cxxtest
 find_package(CxxTest)
 if(CXXTEST_FOUND)
+    file(GLOB UNITTEST_LIST
+        src/${PROJECT_NAME}_tests/binary/*.?pp
+        src/${PROJECT_NAME}_tests/charset/*.?pp
+        src/${PROJECT_NAME}_tests/config/*.?pp
+        src/${PROJECT_NAME}_tests/csv/*.?pp
+        src/${PROJECT_NAME}_tests/filesystem/*.?pp
+        src/${PROJECT_NAME}_tests/image/*.?pp
+        src/${PROJECT_NAME}_tests/stream/*.?pp
+    )
+
+    set(TEST_LIBS ${PROJECT_NAME})
+
+    find_package(OpenSSL)
+    if (OPENSSL_FOUND)
+        file(GLOB UNITTEST_CRYPT_LIST
+            src/${PROJECT_NAME}_tests/crypt/*.?pp
+        )
+
+        set(TEST_LIBS ${TEST_LIBS} ${OPENSSL_LIBRARIES})
+    endif()
+
     set(CXXTEST_USE_PYTHON TRUE)
     set(CXXTEST_TESTGEN_ARGS --error-printer -f)
     include_directories(${CXXTEST_INCLUDE_DIR})
-    file(GLOB_RECURSE UNITTEST_LIST src/${PROJECT_NAME}_tests/*.?pp)
     enable_testing()
-    CXXTEST_ADD_TEST(${PROJECT_NAME}_tests Tests.cpp ${UNITTEST_LIST})
-    target_link_libraries(${PROJECT_NAME}_tests ${PROJECT_NAME})
+    CXXTEST_ADD_TEST(${PROJECT_NAME}_tests Tests.cpp ${UNITTEST_LIST} ${UNITTEST_CRYPT_LIST})
+    target_link_libraries(${PROJECT_NAME}_tests ${TEST_LIBS})
 endif()
