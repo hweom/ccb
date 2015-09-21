@@ -24,6 +24,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <string>
 #include <vector>
 
 namespace ccb { namespace crypt
@@ -76,6 +77,11 @@ namespace ccb { namespace crypt
         void Update(const std::vector<uint8_t>& data)
         {
             this->Update(data.data(), data.size());
+        }
+
+        void Update(const std::string& data)
+        {
+            this->Update(reinterpret_cast<const uint8_t*>(data.data()), data.length());
         }
 
         void Update(const uint8_t* data, size_t length)

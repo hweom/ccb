@@ -22,8 +22,10 @@
 
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <string>
 #include <vector>
 
 namespace ccb { namespace crypt
@@ -43,6 +45,16 @@ namespace ccb { namespace crypt
     public:
 
         Rc4(const std::vector<uint8_t>& key)
+            : Rc4(key.data(), key.size())
+        {
+        }
+
+        Rc4(const std::string& key)
+            : Rc4(reinterpret_cast<const uint8_t*>(key.data()), key.length())
+        {
+        }
+
+        Rc4(const uint8_t* key, size_t keyLength)
         {
             for (size_t k = 0; k < 256; k++)
             {
@@ -52,7 +64,7 @@ namespace ccb { namespace crypt
             size_t j = 0;
             for (size_t k = 0; k < 256; k++)
             {
-               j = (j + this->state[k] + key[k % key.size()]) % 256;
+               j = (j + this->state[k] + key[k % keyLength]) % 256;
 
                auto t = this->state[k];
                this->state[k] = this->state[j];
@@ -66,7 +78,45 @@ namespace ccb { namespace crypt
         {
             std::vector<uint8_t> result(in.size());
 
-            for (size_t k = 0; k < in.size(); k++)
+            this->EncryptData(in.data(), in.size(), result.data());
+
+            return result;
+        }
+
+        void Encrypt(const uint8_t* in, size_t length, uint8_t* out)
+        {
+            this->EncryptData(in, length, out);
+        }
+
+        std::string Encrypt(const std::string& in)
+        {
+            std::vector<uint8_t> result(in.size());
+
+            this->EncryptData(reinterpret_cast<const uint8_t*>(in.data()), in.size(), result.data());
+
+            return std::string(result.begin(), result.end());
+        }
+
+        std::vector<uint8_t> Decrypt(const std::vector<uint8_t>& in)
+        {
+            return this->Encrypt(in);
+        }
+
+        void Decrypt(const uint8_t* in, size_t length, uint8_t* out)
+        {
+            this->Encrypt(in, length, out);
+        }
+
+        std::string Decrypt(const std::string& in)
+        {
+            return this->Encrypt(in);
+        }
+
+    private:
+
+        void EncryptData(const uint8_t* data, size_t length, uint8_t* out)
+        {
+            for (size_t k = 0; k < length; k++)
             {
                 this->i = (this->i + 1) % 256;
                 this->j = (this->j + this->state[this->i]) % 256;
@@ -77,15 +127,8 @@ namespace ccb { namespace crypt
 
                 auto b = this->state[(this->state[this->i] + this->state[this->j]) % 256];
 
-                result[k] = in[k] ^ b;
+                out[k] = data[k] ^ b;
             }
-
-            return result;
-        }
-
-        std::vector<uint8_t> Decrypt(const std::vector<uint8_t>& in)
-        {
-            return this->Encrypt(in);
         }
     };
 } }
