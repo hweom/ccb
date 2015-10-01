@@ -22,20 +22,25 @@
 
 #pragma once
 
-#include <cstdint>
 #include <cstdlib>
+#include <cstdint>
 #include <vector>
 
-#include <ccb/image/ImageView.hpp>
+#include <ccb/image/Bitmap.hpp>
+#include <ccb/image/BitmapAlgorithm.hpp>
+#include <ccb/image/BitmapView.hpp>
+#include <ccb/image/ImageFormat.hpp>
+#include <ccb/image/ImageFormatDescriptor.hpp>
 
 namespace ccb { namespace image
 {
-    template<typename Pixel>
     class Image
     {
     private:
 
         std::vector<uint8_t> data;
+
+        ImageFormat format;
 
         size_t width;
 
@@ -43,125 +48,49 @@ namespace ccb { namespace image
 
         size_t stride;
 
+
     public:
 
-        Image()
-        {
-        }
-
-        Image(size_t width, size_t height)
-            : width(width)
-            , height(height)
-        {
-            auto bpp = this->GetBitsPerPixel();
-
-            this->stride = (((width * bpp + 7) / 8 + 3) / 4) * 4;
-
-            this->data.resize(this->stride * this->height, 0);
-        }
-
-        Image(std::vector<uint8_t>&& data, size_t width, size_t height, size_t stride)
-            : data(std::move(data))
+        Image(ImageFormat format, size_t width, size_t height)
+            : format(format)
             , width(width)
             , height(height)
-            , stride(stride)
         {
-        }
+            auto descriptor = ImageFormatDescriptor::Get(format);
 
-        Image(Image&& other) _NOEXCEPT
-            : data(std::move(other.data))
-            , width(other.width)
-            , height(other.height)
-            , stride(other.stride)
-        {
-        }
-
-        template<typename View>
-        Image(View view)
-            : width(view.GetWidth())
-            , height(view.GetHeight())
-        {
-            auto bpp = this->GetBitsPerPixel();
-
-            this->stride = (((width * bpp + 7) / 8 + 3) / 4) * 4;
+            this->stride = (((width * descriptor.GetBitsPerPixel() + 7) / 8 + 3) / 4) * 4;
 
             this->data.resize(this->stride * this->height, 0);
-
-            auto thisView = this->View();
-
-            for (size_t i = 0; i < this->height; i++)
-            {
-                auto r1 = thisView.BeginRow(i);
-                auto r2 = view.BeginRow(i);
-
-                for (size_t j = 0; j < this->width; j++, r1++, r2++)
-                {
-                    PixelConverter<typename std::remove_const<typename View::PixelType>::type, Pixel>()((*r1), (*r2));
-                }
-            }
         }
-
-        /// Disable copy constructor to disallow expensive image copying.
-        Image(const Image& other) = delete;
-
-        /// Disable copy constructor to disallow expensive image copying.
-        Image& operator = (const Image& other) = delete;
 
     public:
 
-        bool IsEmpty() const
+        template<typename PixelFormat>
+        BitmapView<PixelFormat, PixelFormat> ViewAs()
         {
-            return this->data.empty();
+            return BitmapView<PixelFormat, PixelFormat>(this->data.data(), this->width, this->height, this->stride);
         }
 
-        size_t GetSize() const
+        template<typename PixelFormat>
+        Bitmap<PixelFormat> ToBitmap() const
         {
-            return this->data.size();
+            Bitmap<PixelFormat> result(this->width, this->height);
+
+            this->ApplyInverse<Copier, BitmapView<PixelFormat, PixelFormat>>(result.View());
+
+            return result;
         }
 
-        uint32_t GetWidth() const
-        {
-            return this->width;
-        }
+    private:
 
-        uint32_t GetHeight() const
+        template<template<typename OpView1, typename OpView2> typename Op, typename View2>
+        void ApplyInverse(View2&& view2) const
         {
-            return this->height;
-        }
-
-        uint32_t GetStride() const
-        {
-            return this->stride;
-        }
-
-        /// Get bits per pixel number.
-        size_t GetBitsPerPixel() const
-        {
-            return PixelTraits<Pixel>::BitsPerPixel;
-        }
-
-        const uint8_t* GetData() const
-        {
-            return this->data.data();
-        }
-
-        uint8_t* GetData()
-        {
-            return this->data.data();
-        }
-
-        /// Get image view.
-        template<typename ViewPixel = Pixel>
-        ImageView<Pixel, ViewPixel> View()
-        {
-            return ImageView<Pixel, ViewPixel>(this->data.data(), this->width, this->height, this->stride);
-        }
-
-        /// Get const image view.
-        template<typename ViewPixel = Pixel>
-        ImageView<const Pixel, ViewPixel> View() const
-        {
-            return ImageView<const Pixel, ViewPixel>(this->data.data(), this->width, this->height, this->stride);
+            if (this->format == ImageFormat::Alpha1)
+            {
+                auto view = BitmapView<const Alpha1, typename View2::PixelType>(this->data.data(), this->width, this->height, this->stride);
+                Op<View2, BitmapView<const Alpha1, typename View2::PixelType>>()(view2, view);
+            }
         }
     };
 } }

@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include <ccb/image/ImageFormat.hpp>
+#include <ccb/image/BitmapFormat.hpp>
 
 namespace ccb { namespace image
 {

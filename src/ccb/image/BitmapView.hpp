@@ -22,18 +22,18 @@
 
 #pragma once
 
-#include <ccb/image/ImageIterator.hpp>
+#include <ccb/image/BitmapIterator.hpp>
 
 namespace ccb { namespace image
 {
     template<typename SrcPixel, typename DstPixel>
-    class ImageView
+    class BitmapView
     {
     public:
 
-        using SrcIter = ImageIterator<SrcPixel>;
+        using SrcIter = BitmapIterator<SrcPixel>;
 
-        using Iter = ImageViewIterator<ImageIterator<SrcPixel>, DstPixel>;
+        using Iter = BitmapViewIterator<BitmapIterator<SrcPixel>, DstPixel>;
 
         using ByteType = typename std::conditional<std::is_const<SrcPixel>::value, const uint8_t*, uint8_t*>::type;
 
@@ -55,7 +55,7 @@ namespace ccb { namespace image
 
     public:
 
-        ImageView(RawType data, size_t width, size_t height, size_t stride)
+        BitmapView(RawType data, size_t width, size_t height, size_t stride)
             : data (reinterpret_cast<ByteType>(data))
             , width(width)
             , height(height)

@@ -26,7 +26,7 @@
 #include <cstdlib>
 #include <type_traits>
 
-#include <ccb/image/ImageFormat.hpp>
+#include <ccb/image/BitmapFormat.hpp>
 
 namespace ccb { namespace image
 {
@@ -51,7 +51,7 @@ namespace ccb { namespace image
     }
 
     template<typename InPixelType>
-    class ImageIterator
+    class BitmapIterator
     {
     public:
 
@@ -69,7 +69,7 @@ namespace ccb { namespace image
 
     public:
 
-        ImageIterator(RawType data)
+        BitmapIterator(RawType data)
             : data(reinterpret_cast<ValueType*>(data))
         {
         }
@@ -81,40 +81,40 @@ namespace ccb { namespace image
             return *this->data;
         }
 
-        ImageIterator<PixelType> operator ++ (int)
+        BitmapIterator<PixelType> operator ++ (int)
         {
-            ImageIterator<PixelType> result(this->data);
+            BitmapIterator<PixelType> result(this->data);
 
             this->data++;
 
             return result;
         }
 
-        ImageIterator<PixelType>& operator ++ ()
+        BitmapIterator<PixelType>& operator ++ ()
         {
             this->data++;
 
             return *this;
         }
 
-        friend inline ImageIterator<PixelType> operator + (ImageIterator<PixelType> iter, size_t advance)
+        friend inline BitmapIterator<PixelType> operator + (BitmapIterator<PixelType> iter, size_t advance)
         {
-            return ImageIterator<PixelType>(iter.data + advance);
+            return BitmapIterator<PixelType>(iter.data + advance);
         }
 
-        friend inline bool operator == (ImageIterator<PixelType> i1, ImageIterator<PixelType> i2)
+        friend inline bool operator == (BitmapIterator<PixelType> i1, BitmapIterator<PixelType> i2)
         {
             return (i1.data == i2.data);
         }
 
-        friend inline bool operator != (ImageIterator<PixelType> i1, ImageIterator<PixelType> i2)
+        friend inline bool operator != (BitmapIterator<PixelType> i1, BitmapIterator<PixelType> i2)
         {
             return (i1.data != i2.data);
         }
     };
 
     template<typename Channel>
-    class ImageIterator<CompositePixel<bool, Channel>>
+    class BitmapIterator<CompositePixel<bool, Channel>>
     {
     public:
 
@@ -136,7 +136,7 @@ namespace ccb { namespace image
 
     public:
 
-        ImageIterator(RawType data, size_t bitOffset = 0)
+        BitmapIterator(RawType data, size_t bitOffset = 0)
             : data(reinterpret_cast<ByteType>(data))
             , bitOffset(bitOffset)
         {
@@ -150,11 +150,11 @@ namespace ccb { namespace image
             return this->value;
         }
 
-        ImageIterator<PixelType> operator ++ (int)
+        BitmapIterator<PixelType> operator ++ (int)
         {
             this->Write();
 
-            ImageIterator<PixelType> result(this->data, this->bitOffset);
+            BitmapIterator<PixelType> result(this->data, this->bitOffset);
 
             if (++this->bitOffset == 8)
             {
@@ -167,7 +167,7 @@ namespace ccb { namespace image
             return result;
         }
 
-        ImageIterator<PixelType>& operator ++ ()
+        BitmapIterator<PixelType>& operator ++ ()
         {
             this->Write();
 
@@ -182,7 +182,7 @@ namespace ccb { namespace image
             return *this;
         }
 
-        friend inline ImageIterator<PixelType> operator + (ImageIterator<PixelType> iter, size_t advance)
+        friend inline BitmapIterator<PixelType> operator + (BitmapIterator<PixelType> iter, size_t advance)
         {
             auto data = iter.data;
             auto bitOffset = iter.bitOffset;
@@ -200,15 +200,15 @@ namespace ccb { namespace image
                 bitOffset += advance;
             }
 
-            return ImageIterator<PixelType>(data, bitOffset);
+            return BitmapIterator<PixelType>(data, bitOffset);
         }
 
-        friend inline bool operator == (ImageIterator<PixelType> i1, ImageIterator<PixelType> i2)
+        friend inline bool operator == (BitmapIterator<PixelType> i1, BitmapIterator<PixelType> i2)
         {
             return (i1.data == i2.data) && (i1.bitOffset == i2.bitOffset);
         }
 
-        friend inline bool operator != (ImageIterator<PixelType> i1, ImageIterator<PixelType> i2)
+        friend inline bool operator != (BitmapIterator<PixelType> i1, BitmapIterator<PixelType> i2)
         {
             return (i1.data != i2.data) || (i1.bitOffset != i2.bitOffset);
         }
@@ -227,7 +227,7 @@ namespace ccb { namespace image
     };
 
     template<typename Channel>
-    class ImageIterator<const CompositePixel<bool, Channel>>
+    class BitmapIterator<const CompositePixel<bool, Channel>>
     {
     public:
 
@@ -247,7 +247,7 @@ namespace ccb { namespace image
 
     public:
 
-        ImageIterator(RawType data, size_t bitOffset = 0)
+        BitmapIterator(RawType data, size_t bitOffset = 0)
             : data(reinterpret_cast<ByteType>(data))
             , bitOffset(bitOffset)
         {
@@ -260,9 +260,9 @@ namespace ccb { namespace image
             return ValueType { ((*this->data) & (1 << this->bitOffset)) != 0 };
         }
 
-        ImageIterator<PixelType> operator ++ (int)
+        BitmapIterator<PixelType> operator ++ (int)
         {
-            ImageIterator<PixelType> result(this->data, this->bitOffset);
+            BitmapIterator<PixelType> result(this->data, this->bitOffset);
 
             if (++this->bitOffset == 8)
             {
@@ -273,7 +273,7 @@ namespace ccb { namespace image
             return result;
         }
 
-        ImageIterator<PixelType>& operator ++ ()
+        BitmapIterator<PixelType>& operator ++ ()
         {
             if (++this->bitOffset == 8)
             {
@@ -284,7 +284,7 @@ namespace ccb { namespace image
             return *this;
         }
 
-        friend inline ImageIterator<PixelType> operator + (ImageIterator<PixelType> iter, size_t advance)
+        friend inline BitmapIterator<PixelType> operator + (BitmapIterator<PixelType> iter, size_t advance)
         {
             auto data = iter.data;
             auto bitOffset = iter.bitOffset;
@@ -302,22 +302,22 @@ namespace ccb { namespace image
                 bitOffset += advance;
             }
 
-            return ImageIterator<PixelType>(data, bitOffset);
+            return BitmapIterator<PixelType>(data, bitOffset);
         }
 
-        friend inline bool operator == (ImageIterator<PixelType> i1, ImageIterator<PixelType> i2)
+        friend inline bool operator == (BitmapIterator<PixelType> i1, BitmapIterator<PixelType> i2)
         {
             return (i1.data == i2.data) && (i1.bitOffset == i2.bitOffset);
         }
 
-        friend inline bool operator != (ImageIterator<PixelType> i1, ImageIterator<PixelType> i2)
+        friend inline bool operator != (BitmapIterator<PixelType> i1, BitmapIterator<PixelType> i2)
         {
             return (i1.data != i2.data) || (i1.bitOffset != i2.bitOffset);
         }
     };
 
     template<typename SrcIter, typename PixelType, typename Enable = void>
-    class ImageViewIterator
+    class BitmapViewIterator
     {
     public:
 
@@ -335,19 +335,19 @@ namespace ccb { namespace image
 
     public:
 
-        ImageViewIterator(SrcIter pos)
+        BitmapViewIterator(SrcIter pos)
             : pos(pos)
         {
         }
 
-        ~ImageViewIterator()
+        ~BitmapViewIterator()
         {
             this->Write();
         }
 
     private:
 
-        ImageViewIterator(SrcIter pos, ValueType pixel)
+        BitmapViewIterator(SrcIter pos, ValueType pixel)
             : pos(pos)
             , pixel(pixel)
         {
@@ -362,18 +362,18 @@ namespace ccb { namespace image
             return this->pixel;
         }
 
-        ImageViewIterator<SrcIter, PixelType> operator ++ (int)
+        BitmapViewIterator<SrcIter, PixelType> operator ++ (int)
         {
             this->Write();
 
-            ImageViewIterator<SrcIter, PixelType> result(this->pos, this->pixel);
+            BitmapViewIterator<SrcIter, PixelType> result(this->pos, this->pixel);
 
             this->Next();
 
             return result;
         }
 
-        ImageViewIterator<SrcIter, PixelType>& operator ++ ()
+        BitmapViewIterator<SrcIter, PixelType>& operator ++ ()
         {
             this->Write();
 
@@ -382,17 +382,17 @@ namespace ccb { namespace image
             return *this;
         }
 
-        friend inline ImageViewIterator<SrcIter, PixelType> operator + (ImageViewIterator<SrcIter, PixelType> iter, size_t advance)
+        friend inline BitmapViewIterator<SrcIter, PixelType> operator + (BitmapViewIterator<SrcIter, PixelType> iter, size_t advance)
         {
-            return ImageViewIterator<SrcIter, PixelType>(iter.pos + advance);
+            return BitmapViewIterator<SrcIter, PixelType>(iter.pos + advance);
         }
 
-        friend inline bool operator == (ImageViewIterator<SrcIter, PixelType> i1, ImageViewIterator<SrcIter, PixelType> i2)
+        friend inline bool operator == (BitmapViewIterator<SrcIter, PixelType> i1, BitmapViewIterator<SrcIter, PixelType> i2)
         {
             return i1.pos == i2.pos;
         }
 
-        friend inline bool operator != (ImageViewIterator<SrcIter, PixelType> i1, ImageViewIterator<SrcIter, PixelType> i2)
+        friend inline bool operator != (BitmapViewIterator<SrcIter, PixelType> i1, BitmapViewIterator<SrcIter, PixelType> i2)
         {
             return i1.pos != i2.pos;
         }
@@ -429,7 +429,7 @@ namespace ccb { namespace image
     };
 
     template<typename SrcIter, typename PixelType>
-    class ImageViewIterator<SrcIter, PixelType, typename std::enable_if<std::is_const<typename SrcIter::PixelType>::value, void>::type>
+    class BitmapViewIterator<SrcIter, PixelType, typename std::enable_if<std::is_const<typename SrcIter::PixelType>::value, void>::type>
     {
     public:
 
@@ -447,7 +447,7 @@ namespace ccb { namespace image
 
     public:
 
-        ImageViewIterator(SrcIter pos)
+        BitmapViewIterator(SrcIter pos)
             : pos(pos)
         {
         }
@@ -461,33 +461,33 @@ namespace ccb { namespace image
             return result;
         }
 
-        ImageViewIterator<SrcIter, PixelType> operator ++ (int)
+        BitmapViewIterator<SrcIter, PixelType> operator ++ (int)
         {
-            ImageViewIterator<SrcIter, PixelType> result(this->pos);
+            BitmapViewIterator<SrcIter, PixelType> result(this->pos);
 
             this->pos++;
 
             return result;
         }
 
-        ImageViewIterator<SrcIter, PixelType>& operator ++ ()
+        BitmapViewIterator<SrcIter, PixelType>& operator ++ ()
         {
             this->pos++;
 
             return *this;
         }
 
-        friend inline ImageViewIterator<SrcIter, PixelType> operator + (ImageViewIterator<SrcIter, PixelType> iter, size_t advance)
+        friend inline BitmapViewIterator<SrcIter, PixelType> operator + (BitmapViewIterator<SrcIter, PixelType> iter, size_t advance)
         {
-            return ImageViewIterator<SrcIter, PixelType>(iter.pos + advance);
+            return BitmapViewIterator<SrcIter, PixelType>(iter.pos + advance);
         }
 
-        friend inline bool operator == (ImageViewIterator<SrcIter, PixelType> i1, ImageViewIterator<SrcIter, PixelType> i2)
+        friend inline bool operator == (BitmapViewIterator<SrcIter, PixelType> i1, BitmapViewIterator<SrcIter, PixelType> i2)
         {
             return i1.pos == i2.pos;
         }
 
-        friend inline bool operator != (ImageViewIterator<SrcIter, PixelType> i1, ImageViewIterator<SrcIter, PixelType> i2)
+        friend inline bool operator != (BitmapViewIterator<SrcIter, PixelType> i1, BitmapViewIterator<SrcIter, PixelType> i2)
         {
             return i1.pos != i2.pos;
         }

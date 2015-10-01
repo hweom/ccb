@@ -20,25 +20,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <chrono>
+#include <iostream>
+
 #include <cxxtest/TestSuite.h>
 
 #include <ccb/image/Image.hpp>
-#include <ccb/image/ImageAlgorithm.hpp>
 
 namespace ccb { namespace image
 {
-    class ImageAlgorithmTests : public CxxTest::TestSuite
+    class ImageTests : public CxxTest::TestSuite
     {
     public:
 
-        void TestBitIterator()
+        void TestCanConvertAlpha1ToAlpha1()
         {
-            Image<Alpha1> image(100, 100);
+            Image image(ImageFormat::Alpha1, 10, 10);
 
-            auto view = image.View();
-
-            // Fill image.
-            for (size_t i = 0; i < 100; i++)
+            auto view = image.ViewAs<Alpha1>();
+            for (size_t i = 0; i < 10; i++)
             {
                 auto r = view.BeginRow(i);
                 for (size_t j = 0; r != view.EndRow(i); r++, j++)
@@ -47,10 +47,11 @@ namespace ccb { namespace image
                 }
             }
 
-            auto view2 = static_cast<const Image<Alpha1>&>(image).View();
+            auto bitmap = image.ToBitmap<Alpha1>();
 
-            // Check image.
-            for (size_t i = 0; i < 100; i++)
+            auto view2 = bitmap.View();
+
+            for (size_t i = 0; i < 10; i++)
             {
                 auto r = view2.BeginRow(i);
                 for (size_t j = 0; r != view2.EndRow(i); r++, j++)
@@ -62,43 +63,24 @@ namespace ccb { namespace image
             }
         }
 
-        void TestCopyAlphaFromBitAlphaToRgba()
+        void TestConvertPerformance()
         {
-            Image<Rgba8> dest(100, 100);
-            Image<Alpha1> src(100, 100);
+            auto image1 = Image(ImageFormat::Rgb8u, 1000, 1000);
 
-            auto sview = src.View();
+            uint64_t total = 0;
 
-            // Fill source image.
             for (size_t i = 0; i < 100; i++)
             {
-                auto r = sview.BeginRow(i);
-                for (size_t j = 0; r != sview.EndRow(i); r++, j++)
-                {
-                    (*r)[0] = ((i & 0x1) == 1) && ((j & 0x1) == 1);
-                }
+                auto t1 = std::chrono::system_clock::now();
+
+                auto image2 = image1.ToBitmap<Rgb8>();
+
+                auto t2 = std::chrono::system_clock::now();
+
+                total += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
             }
 
-            auto dview = dest.View<Alpha1>();
-
-            Copy(dview, sview);
-
-            auto dview2 = dest.View();
-
-            // Check image.
-            for (size_t i = 0; i < 100; i++)
-            {
-                auto r = dview2.BeginRow(i);
-                for (size_t j = 0; r != dview2.EndRow(i); r++, j++)
-                {
-                    auto expected = ((i & 0x1) == 1) && ((j & 0x1) == 1) ? 0xff : 0x00;
-
-                    if (expected != (*r)[3])
-                    {
-                        TS_ASSERT_EQUALS(expected, (*r)[3]);
-                    }
-                }
-            }
+            std::cout << std::endl << "Image copy average on " << static_cast<double>(total) / 100 << " micros" << std::endl;
         }
     };
 } }

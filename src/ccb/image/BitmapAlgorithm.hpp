@@ -22,24 +22,34 @@
 
 #pragma once
 
-#include <ccb/image/ImageIterator.hpp>
+#include <ccb/image/BitmapIterator.hpp>
 
 namespace ccb { namespace image
 {
     template<typename View1, typename View2>
-    void Copy(View1&& to, View2&& from)
+    struct Copier
     {
-        auto w = std::min(to.GetWidth(), from.GetWidth());
-        auto h = std::min(to.GetHeight(), from.GetHeight());
-        for (size_t i = 0; i < h; i++)
+        void operator () (View1 to, View2 from)
         {
-            auto p1 = to.BeginRow(i);
-            auto p2 = from.BeginRow(i);
-            for (size_t j = 0; j < w; j++, p1++, p2++)
+            auto w = std::min(to.GetWidth(), from.GetWidth());
+            auto h = std::min(to.GetHeight(), from.GetHeight());
+            for (size_t i = 0; i < h; i++)
             {
-                *p1 = *p2;
+                auto p1 = to.BeginRow(i);
+                auto p2 = from.BeginRow(i);
+                for (size_t j = 0; j < w; j++, p1++, p2++)
+                {
+                    *p1 = *p2;
+                }
             }
         }
+    };
+
+
+    template<typename View1, typename View2>
+    void Copy(View1 to, View2 from)
+    {
+        Copier<View1, View2>()(to, from);
     }
 
     template<typename View>

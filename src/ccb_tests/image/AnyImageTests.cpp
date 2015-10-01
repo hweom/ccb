@@ -20,10 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <chrono>
+#include <iostream>
+
 #include <cxxtest/TestSuite.h>
 
 #include <ccb/image/AnyImage.hpp>
-#include <ccb/image/ImageAlgorithm.hpp>
+#include <ccb/image/BitmapAlgorithm.hpp>
 
 namespace ccb { namespace image
 {
@@ -41,7 +44,7 @@ namespace ccb { namespace image
         void TestViewAs()
         {
             auto image = AnyImage<Rgba8>::Create<Rgba8>(100, 100);
-            Image<Rgba8> image2(100, 100);
+            Bitmap<Rgba8> image2(100, 100);
 
             auto image2View = image2.View();
 
@@ -187,6 +190,27 @@ namespace ccb { namespace image
             TS_ASSERT_EQUALS(200, (*p2)[0]);
             TS_ASSERT_EQUALS(200, (*p2)[1]);
             TS_ASSERT_EQUALS(200, (*p2)[2]);
+        }
+
+        void TestCopyPerformance()
+        {
+            auto image1 = AnyImage<Rgb8, Gray8>::Create<Rgb8>(1000, 1000);
+            auto image2 = AnyImage<Rgb8, Gray8>::Create<Rgb8>(1000, 1000);
+
+            uint64_t total = 0;
+
+            for (size_t i = 0; i < 100; i++)
+            {
+                auto t1 = std::chrono::system_clock::now();
+
+                Copy(image1.View<Gray8>(), image2.View<Gray8>());
+
+                auto t2 = std::chrono::system_clock::now();
+
+                total += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+            }
+
+            std::cout << std::endl << "AnyImage copy average on " << static_cast<double>(total) / 100 << " micros" << std::endl;
         }
     };
 } }

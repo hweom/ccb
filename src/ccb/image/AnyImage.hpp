@@ -27,8 +27,8 @@
 #include <vector>
 
 #include <ccb/image/AnyImageView.hpp>
-#include <ccb/image/Image.hpp>
-#include <ccb/image/ImageAlgorithm.hpp>
+#include <ccb/image/Bitmap.hpp>
+#include <ccb/image/BitmapAlgorithm.hpp>
 
 #define IMAGE_REGISTER_LAYOUT(Layout) Layout<bool>, Layout<uint8_t>
 
@@ -319,9 +319,9 @@ namespace ccb { namespace image
         }
 
         template<typename Pixel>
-        Image<Pixel> ReinterpretAs()
+        Bitmap<Pixel> ReinterpretAs()
         {
-            return Image<Pixel>(std::move(this->data), width, height, stride);
+            return Bitmap<Pixel>(std::move(this->data), width, height, stride);
         }
 
         /// Get image view.
@@ -381,9 +381,9 @@ namespace ccb { namespace image
         }
 
         template<typename PixelType>
-        Image<PixelType> Convert() const
+        Bitmap<PixelType> Convert() const
         {
-            Image<PixelType> image(this->width, this->height);
+            Bitmap<PixelType> image(this->width, this->height);
 
             Copy(image.View(), this->View<const PixelType>());
 
