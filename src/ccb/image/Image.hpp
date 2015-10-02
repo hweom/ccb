@@ -75,7 +75,7 @@ namespace ccb { namespace image
             }
         };
 
-        template<template<typename OpView1, typename OpView2> typename Op, typename View, typename... PixelTypes>
+        template<template<typename OpView1, typename OpView2> class Op, typename View, typename... PixelTypes>
         struct ConstApplier
         {
             void operator ()(
@@ -90,7 +90,7 @@ namespace ccb { namespace image
             }
         };
 
-        template<template<typename OpView1, typename OpView2> typename Op, typename View, typename First, typename... PixelTypes>
+        template<template<typename OpView1, typename OpView2> class Op, typename View, typename First, typename... PixelTypes>
         struct ConstApplier<Op, View, First, PixelTypes...>
         {
             void operator ()(
@@ -113,7 +113,7 @@ namespace ccb { namespace image
             }
         };
 
-        template<template<typename OpView1, typename OpView2> typename Op, typename View2, typename... PixelTypes>
+        template<template<typename OpView1, typename OpView2> class Op, typename View2, typename... PixelTypes>
         struct ConstReverseApplier
         {
             void operator ()(
@@ -128,7 +128,7 @@ namespace ccb { namespace image
             }
         };
 
-        template<template<typename OpView1, typename OpView2> typename Op, typename View2, typename First, typename... PixelTypes>
+        template<template<typename OpView1, typename OpView2> class Op, typename View2, typename First, typename... PixelTypes>
         struct ConstReverseApplier<Op, View2, First, PixelTypes...>
         {
             void operator ()(
@@ -313,18 +313,6 @@ namespace ccb { namespace image
             }
 
             return Image(std::move(data), width, height, stride, typeCode);
-        }
-
-    private:
-
-        template<template<typename OpView1, typename OpView2> typename Op, typename View2>
-        void ApplyInverse(View2&& view2) const
-        {
-            if (this->format == ImageFormat::Alpha1)
-            {
-                auto view = BitmapView<const Alpha1, typename View2::PixelType>(this->data.data(), this->width, this->height, this->stride);
-                Op<View2, BitmapView<const Alpha1, typename View2::PixelType>>()(view2, view);
-            }
         }
     };
 } }
