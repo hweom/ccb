@@ -150,6 +150,11 @@ namespace ccb { namespace image
             return this->data.data();
         }
 
+        Bitmap<Pixel> Clone() const
+        {
+            return Bitmap<Pixel>(std::vector<uint8_t>(this->data), this->width, this->height, this->stride);
+        }
+
         /// Get image view.
         template<typename ViewPixel = Pixel>
         BitmapView<Pixel, ViewPixel> View()

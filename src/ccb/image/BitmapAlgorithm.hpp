@@ -53,7 +53,7 @@ namespace ccb { namespace image
     }
 
     template<typename View>
-    void Fill(View&& view, typename View::ValueType value)
+    void Fill(View view, typename View::ValueType value)
     {
         for (size_t i = 0; i < view.GetHeight(); i++)
         {
