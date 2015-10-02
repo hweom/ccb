@@ -35,7 +35,7 @@ namespace ccb { namespace image
 
         void TestCanConvertAlpha1ToAlpha1()
         {
-            Image image(ImageFormat::Alpha1, 10, 10);
+            auto image = Image<Alpha1>::Create<Alpha1>(10, 10);
 
             auto view = image.ViewAs<Alpha1>();
             for (size_t i = 0; i < 10; i++)
@@ -65,7 +65,7 @@ namespace ccb { namespace image
 
         void TestConvertPerformance()
         {
-            auto image1 = Image(ImageFormat::Rgb8u, 1000, 1000);
+            auto image1 = Image<Alpha1, Rgb8>::Create<Rgb8>(1000, 1000);
 
             uint64_t total = 0;
 

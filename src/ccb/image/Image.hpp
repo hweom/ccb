@@ -34,13 +34,132 @@
 
 namespace ccb { namespace image
 {
+    namespace details
+    {
+        struct ImageInfo
+        {
+            size_t componentCount;
+
+            size_t bitsPerPixel;
+
+            bool hasAlpha;
+        };
+
+        template<typename... PixelTypes>
+        struct ImageInfoProvider
+        {
+            ImageInfo operator () (unsigned typeCode)
+            {
+                throw std::logic_error("Image type not registered");
+            }
+        };
+
+        template<typename T, typename... PixelTypes>
+        struct ImageInfoProvider<T, PixelTypes...>
+        {
+            ImageInfo operator () (unsigned typeCode)
+            {
+                if (typeCode == 0)
+                {
+                    return ImageInfo
+                    {
+                        PixelTraits<T>::ComponentCount,
+                        PixelTraits<T>::BitsPerPixel,
+                        PixelChannelTraits<T, Alpha>::HasChannel
+                    };
+                }
+                else
+                {
+                    return ImageInfoProvider<PixelTypes...>()(typeCode - 1);
+                }
+            }
+        };
+
+        template<template<typename OpView1, typename OpView2> typename Op, typename View, typename... PixelTypes>
+        struct ConstApplier
+        {
+            void operator ()(
+                View&& view,
+                unsigned typeCode,
+                const void* data,
+                size_t width,
+                size_t height,
+                size_t stride)
+            {
+                throw std::logic_error("Image type not registered");
+            }
+        };
+
+        template<template<typename OpView1, typename OpView2> typename Op, typename View, typename First, typename... PixelTypes>
+        struct ConstApplier<Op, View, First, PixelTypes...>
+        {
+            void operator ()(
+                View&& view,
+                unsigned typeCode,
+                const void* data,
+                size_t width,
+                size_t height,
+                size_t stride)
+            {
+                if (typeCode == 0)
+                {
+                    auto view2 = BitmapView<const First, typename View::PixelType>(data, width, height, stride);
+                    Op<BitmapView<const First, typename View::PixelType>, View>()(view2, view);
+                }
+                else
+                {
+                    return ConstApplier<Op, View, PixelTypes...>()(std::forward<View>(view), typeCode - 1, data, width, height, stride);
+                }
+            }
+        };
+
+        template<template<typename OpView1, typename OpView2> typename Op, typename View2, typename... PixelTypes>
+        struct ConstReverseApplier
+        {
+            void operator ()(
+                unsigned typeCode,
+                const void* data,
+                size_t width,
+                size_t height,
+                size_t stride,
+                View2&& view2)
+            {
+                throw std::logic_error("Image type not registered");
+            }
+        };
+
+        template<template<typename OpView1, typename OpView2> typename Op, typename View2, typename First, typename... PixelTypes>
+        struct ConstReverseApplier<Op, View2, First, PixelTypes...>
+        {
+            void operator ()(
+                unsigned typeCode,
+                const void* data,
+                size_t width,
+                size_t height,
+                size_t stride,
+                View2&& view2)
+            {
+                if (typeCode == 0)
+                {
+                    auto view = BitmapView<const First, typename View2::PixelType>(data, width, height, stride);
+                    Op<View2, BitmapView<const First, typename View2::PixelType>>()(view2, view);
+                }
+                else
+                {
+                    return ConstReverseApplier<Op, View2, PixelTypes...>()(typeCode - 1, data, width, height, stride, std::forward<View2>(view2));
+                }
+            }
+        };
+    }
+
+    template<typename... PixelTypes>
     class Image
     {
     private:
 
         std::vector<uint8_t> data;
 
-        ImageFormat format;
+        unsigned typeCode = 0;
 
         size_t width;
 
@@ -51,24 +170,93 @@ namespace ccb { namespace image
 
     public:
 
-        Image(ImageFormat format, size_t width, size_t height)
-            : format(format)
+        Image()
+        {
+        }
+
+        Image(Image&& other)
+            : data(std::move(other.data))
+            , width(other.width)
+            , height(other.height)
+            , stride(other.stride)
+            , typeCode(other.typeCode)
+        {
+        }
+
+    private:
+
+        Image(std::vector<uint8_t>&& data, size_t width, size_t height, size_t stride, unsigned typeCode)
+            : data(std::move(data))
             , width(width)
             , height(height)
+            , stride(stride)
+            , typeCode(typeCode)
         {
-            auto descriptor = ImageFormatDescriptor::Get(format);
-
-            this->stride = (((width * descriptor.GetBitsPerPixel() + 7) / 8 + 3) / 4) * 4;
-
-            this->data.resize(this->stride * this->height, 0);
         }
 
     public:
 
-        template<typename PixelFormat>
-        BitmapView<PixelFormat, PixelFormat> ViewAs()
+        bool IsEmpty() const
         {
-            return BitmapView<PixelFormat, PixelFormat>(this->data.data(), this->width, this->height, this->stride);
+            return this->data.empty();
+        }
+
+        template<typename PixelType>
+        bool IsOfType() const
+        {
+            return details::Offset<PixelType, PixelTypes...>::value == this->typeCode;
+        }
+
+        size_t GetSize() const
+        {
+            return this->data.size();
+        }
+
+        uint32_t GetWidth() const
+        {
+            return this->width;
+        }
+
+        uint32_t GetHeight() const
+        {
+            return this->height;
+        }
+
+        uint32_t GetStride() const
+        {
+            return this->stride;
+        }
+
+        size_t GetComponentCount() const
+        {
+            return details::ImageInfoProvider<PixelTypes...>()(this->typeCode).componentCount;
+        }
+
+        size_t GetBitsPerPixel() const
+        {
+            return details::ImageInfoProvider<PixelTypes...>()(this->typeCode).bitsPerPixel;
+        }
+
+        uint8_t* GetData()
+        {
+            return this->data.data();
+        }
+
+        const uint8_t* GetData() const
+        {
+            return this->data.data();
+        }
+
+        template<typename SrcFormat, typename DstFormat = SrcFormat>
+        BitmapView<SrcFormat, DstFormat> ViewAs()
+        {
+            return BitmapView<SrcFormat, DstFormat>(this->data.data(), this->width, this->height, this->stride);
+        }
+
+        template<typename SrcFormat, typename DstFormat = SrcFormat>
+        BitmapView<const SrcFormat, const DstFormat> ViewAs() const
+        {
+            return BitmapView<const SrcFormat, const DstFormat>(this->data.data(), this->width, this->height, this->stride);
         }
 
         template<typename PixelFormat>
@@ -76,9 +264,55 @@ namespace ccb { namespace image
         {
             Bitmap<PixelFormat> result(this->width, this->height);
 
-            this->ApplyInverse<Copier, BitmapView<PixelFormat, PixelFormat>>(result.View());
+            details::ConstReverseApplier<Copier, BitmapView<PixelFormat, PixelFormat>, PixelTypes...>()(
+                this->typeCode,
+                this->data.data(),
+                this->width,
+                this->height,
+                this->stride,
+                result.View());
 
             return result;
+        }
+
+        template<typename SrcPixel, typename DstPixel>
+        void CopyFrom(BitmapView<const SrcPixel, const DstPixel>&& view)
+        {
+            details::ConstApplier<Copier, BitmapView<const SrcPixel, const DstPixel>, PixelTypes...>()(
+                std::move(view),
+                this->typeCode,
+                this->data.data(),
+                this->width,
+                this->height,
+                this->stride);
+        }
+
+    public:
+
+        template<typename Pixel>
+        static Image Create(size_t width, size_t height)
+        {
+            auto bpp = PixelTraits<Pixel>::BitsPerPixel;
+            auto stride = (((width * bpp + 7) / 8 + 3) / 4) * 4;
+            auto typeCode = details::Offset<Pixel, PixelTypes...>::value;
+            if (typeCode == details::Npos::value)
+            {
+                throw std::logic_error("Unregistered pixel type");
+            }
+
+            return Image(std::vector<uint8_t>(stride * height), width, height, stride, typeCode);
+        }
+
+        template<typename Pixel>
+        static Image Create(std::vector<uint8_t>&& data, size_t width, size_t height, size_t stride)
+        {
+            auto typeCode = details::Offset<Pixel, PixelTypes...>::value;
+            if (typeCode == details::Npos::value)
+            {
+                throw std::logic_error("Unregistered pixel type");
+            }
+
+            return Image(std::move(data), width, height, stride, typeCode);
         }
 
     private:
