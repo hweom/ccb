@@ -63,6 +63,8 @@ namespace ccb { namespace image
     using Rgba8 = CompositePixel<uint8_t, Red, Green, Blue, Alpha>;
     using Rgba16 = CompositePixel<uint16_t, Red, Green, Blue, Alpha>;
 
+    using Bgra8 = CompositePixel<uint8_t, Blue, Green, Red, Alpha>;
+
     using Rgb8 = CompositePixel<uint8_t, Red, Green, Blue>;
     using Rgb16 = CompositePixel<uint16_t, Red, Green, Blue>;
 
