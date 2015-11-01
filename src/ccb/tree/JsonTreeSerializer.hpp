@@ -277,7 +277,7 @@ namespace ccb { namespace tree
             {
                 while ((c = this->GetSymbol(stream)) != '"')
                 {
-                    strValue.push_back(c);
+                    strValue.push_back(static_cast<char>(c));
 
                     if (!stream)
                     {
@@ -287,7 +287,7 @@ namespace ccb { namespace tree
             }
             else
             {
-                strValue.push_back(c);
+                strValue.push_back(static_cast<char>(c));
                 c = stream.peek();
                 while (!isspace(c) && (c != ','))
                 {

@@ -119,17 +119,17 @@ namespace ccb { namespace image
             return this->data.size();
         }
 
-        uint32_t GetWidth() const
+        size_t GetWidth() const
         {
             return this->width;
         }
 
-        uint32_t GetHeight() const
+        size_t GetHeight() const
         {
             return this->height;
         }
 
-        uint32_t GetStride() const
+        size_t GetStride() const
         {
             return this->stride;
         }

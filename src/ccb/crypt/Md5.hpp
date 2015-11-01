@@ -94,7 +94,7 @@ namespace ccb { namespace crypt
             // number of bytes we need to fill in buffer
             auto firstpart = 64 - index;
 
-            size_t i;
+            uint64_t i;
 
             // transform as many times as possible.
             if (length >= firstpart)
@@ -136,7 +136,7 @@ namespace ccb { namespace crypt
 
             // pad out to 56 mod 64.
             auto index = this->bitCount / 8 % 64;
-            auto padLen = (index < 56) ? (56 - index) : (120 - index);
+            auto padLen = static_cast<size_t>((index < 56) ? (56 - index) : (120 - index));
             this->Update(padding, padLen);
 
             // Append length (before padding)
