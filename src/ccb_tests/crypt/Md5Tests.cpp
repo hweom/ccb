@@ -28,57 +28,55 @@
 
 #include <ccb/crypt/Md5.hpp>
 
-namespace ccb { namespace crypt
-{
-    class Md5Tests : public CxxTest::TestSuite
+namespace ccb { namespace crypt {
+class Md5Tests : public CxxTest::TestSuite {
+public:
+
+    void TestHash()
     {
-    public:
+        std::default_random_engine engine;
 
-        void TestHash()
+        for (size_t i = 0; i < 10; i++)
         {
-            std::default_random_engine engine;
+            auto msgLen = std::uniform_int_distribution<uint32_t>(100, 2000)(engine);
 
-            for (size_t i = 0; i < 10; i++)
+            auto msg = std::vector<uint8_t>(msgLen);
+            for (size_t j = 0; j < msgLen; j++)
             {
-                auto msgLen = std::uniform_int_distribution<uint32_t>(100, 2000)(engine);
+                msg[j] = std::uniform_int_distribution<uint32_t>(0, 255)(engine);
+            }
 
-                auto msg = std::vector<uint8_t>(msgLen);
-                for (size_t j = 0; j < msgLen; j++)
-                {
-                    msg[j] = std::uniform_int_distribution<uint32_t>(0, 255)(engine);
-                }
+            auto digest1 = this->HashByMd5(msg);
+            auto digest2 = this->HashByOpenSsl(msg);
 
-                auto digest1 = this->HashByMd5(msg);
-                auto digest2 = this->HashByOpenSsl(msg);
-
-                TS_ASSERT_EQUALS(digest2.size(), digest1.size());
-                for (size_t j = 0; j < digest1.size(); j++)
-                {
-                    TS_ASSERT_EQUALS(digest2[j], digest1[j]);
-                }
+            TS_ASSERT_EQUALS(digest2.size(), digest1.size());
+            for (size_t j = 0; j < digest1.size(); j++)
+            {
+                TS_ASSERT_EQUALS(digest2[j], digest1[j]);
             }
         }
+    }
 
-    private:
+private:
 
-        std::vector<uint8_t> HashByMd5(const std::vector<uint8_t>& data)
-        {
-            Md5 md5;
-            md5.Update(data);
+    std::vector<uint8_t> HashByMd5(const std::vector<uint8_t>& data)
+    {
+        Md5 md5;
+        md5.Update(data);
 
-            return md5.Finish();
-        }
+        return md5.Finish();
+    }
 
-        std::vector<uint8_t> HashByOpenSsl(const std::vector<uint8_t>& data)
-        {
-            MD5_CTX md5;
-            std::vector<uint8_t> result(MD5_DIGEST_LENGTH);
+    std::vector<uint8_t> HashByOpenSsl(const std::vector<uint8_t>& data)
+    {
+        MD5_CTX md5;
+        std::vector<uint8_t> result(MD5_DIGEST_LENGTH);
 
-            MD5_Init(&md5);
-            MD5_Update(&md5, reinterpret_cast<const unsigned char*>(data.data()), data.size());
-            MD5_Final(result.data(), &md5);
+        MD5_Init(&md5);
+        MD5_Update(&md5, reinterpret_cast<const unsigned char*>(data.data()), data.size());
+        MD5_Final(result.data(), &md5);
 
-            return result;
-        }
-    };
+        return result;
+    }
+};
 } }
