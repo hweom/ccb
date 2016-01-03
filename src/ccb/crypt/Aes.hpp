@@ -62,6 +62,10 @@ public:
         this->CreateKeys(key);
     }
 
+    Aes(const std::string& key)
+        : Aes<KeySize>(reinterpret_cast<const uint8_t*>(key.data())) {
+    }
+
 public:
 
     /// Encrypt data in ECB mode.
