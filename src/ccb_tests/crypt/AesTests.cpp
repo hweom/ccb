@@ -86,6 +86,68 @@ public:
         }
     }
 
+    void TestCanEncryptAesCbcNoPadding() {
+        auto iv = this->FromHex(
+            "538efbaf48c92f8a46f46c44f74ac5b0");
+
+        auto plaintext = this->FromHex(
+            "6bc1bee22e409f96e93d7e117393172a"
+            "ae2d8a571e03ac9c9eb76fac45af8e51"
+            "30c81c46a35ce411e5fbc1191a0a52ef"
+            "f69f2445df4f9b17ad2b417be66c3710");
+
+        auto key = this->FromHex(
+            "2b7e151628aed2a6abf7158809cf4f3c");
+
+        auto ciphertext = this->FromHex(
+            "89faf380a384cfea57767ec09f39c33d"
+            "b6a97d78d9de826124ea343efeb9dccf"
+            "a952d4a90e20b0afbe17197499ab2029"
+            "9b901776e803e3b17155545d93d639d9");
+
+        auto output = std::vector<uint8_t>();
+
+        auto aes = Aes<>(key.data());
+
+        aes.EncryptCbc<NoPadding>(plaintext.begin(), plaintext.end(), std::back_inserter(output), iv.begin());
+
+        TS_ASSERT_EQUALS(ciphertext.size(), output.size());
+        for (size_t i = 0; i < ciphertext.size(); i++) {
+            TS_ASSERT_EQUALS(ciphertext[i], output[i]);
+        }
+    }
+
+    void TestCanDecryptAesCbcNoPadding() {
+        auto iv = this->FromHex(
+            "538efbaf48c92f8a46f46c44f74ac5b0");
+
+        auto plaintext = this->FromHex(
+            "6bc1bee22e409f96e93d7e117393172a"
+            "ae2d8a571e03ac9c9eb76fac45af8e51"
+            "30c81c46a35ce411e5fbc1191a0a52ef"
+            "f69f2445df4f9b17ad2b417be66c3710");
+
+        auto key = this->FromHex(
+            "2b7e151628aed2a6abf7158809cf4f3c");
+
+        auto ciphertext = this->FromHex(
+            "89faf380a384cfea57767ec09f39c33d"
+            "b6a97d78d9de826124ea343efeb9dccf"
+            "a952d4a90e20b0afbe17197499ab2029"
+            "9b901776e803e3b17155545d93d639d9");
+
+        auto output = std::vector<uint8_t>();
+
+        auto aes = Aes<>(key.data());
+
+        aes.DecryptCbc<NoPadding>(ciphertext.begin(), ciphertext.end(), std::back_inserter(output), iv.begin());
+
+        TS_ASSERT_EQUALS(plaintext.size(), output.size());
+        for (size_t i = 0; i < plaintext.size(); i++) {
+            TS_ASSERT_EQUALS(plaintext[i], output[i]);
+        }
+    }
+
 private:
 
     std::vector<uint8_t> FromHex(const std::string& hex) {
