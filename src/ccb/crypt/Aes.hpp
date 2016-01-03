@@ -265,7 +265,7 @@ private:
             }
         }
 
-        return std::make_pair(begin, length);
+        return std::make_pair(begin, BLOCK_SIZE - paddingLength);
     }
 
     template<typename OutIter>
