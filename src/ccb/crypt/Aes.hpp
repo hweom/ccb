@@ -31,17 +31,31 @@
 #include <ccb/crypt/Padding.hpp>
 
 namespace ccb { namespace crypt {
+
+namespace details {
+template<size_t KeySize>
+struct AesHelper {
+};
+
+template<>
+struct AesHelper<128> {
+    static const size_t NR = 10;
+};
+
+template<>
+struct AesHelper<192> {
+    static const size_t NR = 12;
+};
+
+template<>
+struct AesHelper<256> {
+    static const size_t NR = 14;
+};
+}
+
 /// AES encryption implementation.
 template<size_t KeySize=128>
 class Aes {
-private:
-
-    static constexpr size_t GetNr() {
-        return (KeySize == 128)
-            ? 10
-            : ((KeySize == 192) ? 12 : 14);
-    }
-
 private:
 
     static const size_t BLOCK_SIZE = 16;
@@ -50,7 +64,7 @@ private:
 
     static const size_t Nk = KeySize / 32;
 
-    static const size_t Nr = GetNr();
+    static const size_t Nr = details::AesHelper<KeySize>::NR;
 
     uint8_t roundKeys[Nr + 1][4 * Nb];
 
